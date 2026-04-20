@@ -138,7 +138,7 @@ app.post('/api/transcribe', async (req, res) => {
       season: season ? parseInt(season) : null,
       episode_title: episodeTitle || null,
       extracted_at: new Date().toISOString(),
-      word_count: fullText.split(/\s+/).length,
+      word_count: (fullText.trim().match(/\S+/g) || []).length,
       transcript: fullText,
       segments,
     };
