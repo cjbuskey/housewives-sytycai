@@ -1,5 +1,9 @@
 node_modules/
 .env
+
+# GCP service account keys — NEVER commit real ones
 *.json.key
 service-account*.json
+!service-account.example.json
+
 .DS_Store
