@@ -1,19 +1,19 @@
 # Real Housewives Reunion Ready — AI Drama Coach
 
-> *"Brief me on Erika before tonight."*
+> _"Brief me on Erika before tonight."_
 
 Multi-agent pipeline that ingests Real Housewives reunion transcripts, maps drama arcs, and powers a Bravo-producer-voiced Agentforce chatbot. Built for the **So You Think You Can AI** contest.
 
 ## Stack
 
-| Layer | Tech |
-|---|---|
-| Ingestion | Heroku (Node.js) |
-| Storage | GCP Cloud Storage (2 buckets) |
-| Enrichment | GCP Cloud Function + Claude |
-| Voice | ElevenLabs |
-| Data | Salesforce Data Cloud |
-| Agent | Salesforce Agentforce |
+| Layer      | Tech                              |
+| ---------- | --------------------------------- |
+| Ingestion  | Local Node.js app (YouTube → GCS) |
+| Storage    | GCP Cloud Storage (2 buckets)     |
+| Enrichment | GCP Cloud Function + Claude       |
+| Voice      | ElevenLabs                        |
+| Data       | Salesforce Data Cloud             |
+| Agent      | Salesforce Agentforce             |
 
 ## Run Locally
 
@@ -39,29 +39,21 @@ cp .env.example .env
 npm start
 ```
 
-Open <http://localhost:3000> and paste a YouTube URL. Transcripts land in `gs://sytycai-video-transcripts/`.
+Open <http://localhost:3000> and paste a YouTube URL. Transcripts land in `gs://sytycai-video-transcripts/`, which triggers the Cloud Function enrichment pipeline.
 
 **Scripts:**
+
 ```bash
 npm run dev           # auto-restart on file changes
 npm run lint          # ESLint
 npm run format        # Prettier --write
 ```
 
-## Deploy to Heroku
-
-```bash
-heroku create reunion-ready
-heroku config:set GOOGLE_CLOUD_PROJECT_ID=your-project-id
-heroku config:set GOOGLE_CLOUD_CREDENTIALS="$(cat service-account.json)"
-git push heroku main
-```
-
 ## Project Steps
 
 See [plans/project-plan.md](plans/project-plan.md) for the full plan.
 
-1. Heroku app — accepts YouTube URLs, stores transcripts in GCP
+1. Local ingestion app — accepts YouTube URLs, stores transcripts in GCP
 2. Cloud Function — auto-triggers on upload, enriches with Claude
 3. Data Cloud — ingests enriched data, harmonizes with Contact records
 4. Agentforce — Reunion Prep Coach with Bravo producer persona

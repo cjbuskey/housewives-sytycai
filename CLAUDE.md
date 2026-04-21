@@ -24,12 +24,12 @@ housewives-sytycai/
 
 ## Development Phases
 
-| Phase | Goal |
-|---|---|
-| Step 1 | Heroku web app → YouTube transcript → GCP Storage |
+| Phase  | Goal                                                                    |
+| ------ | ----------------------------------------------------------------------- |
+| Step 1 | Local Node.js ingestion app → YouTube transcript → GCP Storage          |
 | Step 2 | GCP Cloud Function (event-driven) → Claude enrichment → enriched bucket |
-| Step 3 | Data Cloud ingestion + Contact harmonization |
-| Step 4 | Agentforce agent + Confessional Generator |
+| Step 3 | Data Cloud ingestion + Contact harmonization                            |
+| Step 4 | Agentforce agent + Confessional Generator                               |
 
 ## GCP Cloud Function Notes
 

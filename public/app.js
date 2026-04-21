@@ -42,6 +42,8 @@ form.addEventListener('submit', async (e) => {
     showName: document.getElementById('showName').value.trim(),
     season: document.getElementById('season').value.trim(),
     episodeTitle: document.getElementById('episodeTitle').value.trim(),
+    cast: document.getElementById('cast').value.trim(),
+    notes: document.getElementById('notes').value.trim(),
   };
 
   try {
