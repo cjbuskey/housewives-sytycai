@@ -42,7 +42,7 @@ Data Cloud data stream → Contact harmonization → Agentforce
 - [x] Set up GCP Cloud Storage bucket (`sytycai-video-transcripts`)
 - [x] On form submit: extract transcript → upload as `{show}-{season}-{episode}-{timestamp}.json` to GCP
 - [x] Display confirmation with GCP file path and transcript preview
-- [ ] Seed 3–5 RHOSLC reunion episodes into GCS for the demo
+- [x] Seed 3–5 RHOSLC reunion episodes into GCS for the demo
 
 ### Output Schema (stored in GCP)
 
@@ -65,7 +65,7 @@ Data Cloud data stream → Contact harmonization → Agentforce
 
 ### GCP Setup
 
-- [ ] Create second bucket: `sytycai-video-transcripts-enriched`
+- [x] Create second bucket: `sytycai-video-transcripts-enriched`
 - [ ] Deploy a Cloud Function (Python or Node.js, 2nd gen) to the same GCP project
 - [ ] Set trigger: `google.cloud.storage.object.v1.finalized` on `sytycai-video-transcripts` bucket
 - [ ] Grant the Cloud Function's service account read access to `sytycai-video-transcripts` and write access to `sytycai-video-transcripts-enriched`
