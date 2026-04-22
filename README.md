@@ -41,6 +41,37 @@ npm start
 
 Open <http://localhost:3000> and paste a YouTube URL. Transcripts land in `gs://sytycai-video-transcripts/`, which triggers the Cloud Function enrichment pipeline.
 
+### Form fields
+
+| Field                  | Required | Purpose                                                                                            |
+| ---------------------- | -------- | -------------------------------------------------------------------------------------------------- |
+| YouTube URL            | ✅       | The video to transcribe                                                                            |
+| Franchise              | –        | e.g. `Real Housewives of Salt Lake City`                                                           |
+| Season                 | –        | Season number                                                                                      |
+| Episode Title          | –        | e.g. `Reunion Part 1`                                                                              |
+| **Cast**               | –        | Comma-separated Housewives in this reunion. Anchors Claude's speaker attribution.                  |
+| **Additional Context** | –        | Free-form producer notes about the season — storylines, new cast members, anything worth flagging. |
+
+The Cast and Additional Context fields get passed to Claude as grounding context during enrichment, which significantly improves drama profile accuracy for ambiguous moments.
+
+### Optional: speaker hints (advanced)
+
+After looking at the enriched output, if you notice Claude mis-attributing specific moments, you can hand-edit the raw transcript JSON in GCS and add a `speaker_hints` array:
+
+```json
+{
+  "transcript": "...",
+  "cast": ["Heather Gay", "Lisa Barlow", "..."],
+  "speaker_hints": [
+    "Any line about 'my lawsuit' is Monica.",
+    "The host asking questions is Andy Cohen, not a Housewife.",
+    "The moment about the stairs is Heather talking about Monica."
+  ]
+}
+```
+
+Then re-upload the file to re-trigger enrichment. See [cloud-function/README.md](cloud-function/README.md#input-json-optional-grounding-fields) for full details. This field is intentionally not on the form — it's an iterative refinement you'd only do after seeing initial output.
+
 **Scripts:**
 
 ```bash
