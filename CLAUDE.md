@@ -24,12 +24,12 @@ housewives-sytycai/
 
 ## Development Phases
 
-| Phase | Goal |
-|---|---|
-| Step 1 | Heroku web app → YouTube transcript → GCP Storage |
+| Phase  | Goal                                                                    |
+| ------ | ----------------------------------------------------------------------- |
+| Step 1 | Local Node.js ingestion app → YouTube transcript → GCP Storage          |
 | Step 2 | GCP Cloud Function (event-driven) → Claude enrichment → enriched bucket |
-| Step 3 | Data Cloud ingestion + Contact harmonization |
-| Step 4 | Agentforce agent + Confessional Generator |
+| Step 3 | Data Cloud ingestion + Contact harmonization                            |
+| Step 4 | Agentforce agent + Confessional Generator                               |
 
 ## GCP Cloud Function Notes
 
@@ -51,10 +51,3 @@ housewives-sytycai/
 - Custom fields on Contact: `Drama_Score__c`, `Key_Feuds__c`, `AI_Talking_Points__c`, `Season__c`
 - Agentforce agent topic: "Reunion Prep Coach"
 - Agent persona instruction: speak like a seasoned Bravo producer — theatrical, knowing, slightly conspiratorial
-
-## Contest Context
-
-- Contest: So You Think You Can AI (SYTYCAI) — internal Salesforce innovation contest
-- Extra points for using Agentforce (at least one hook/integration)
-- Judged on creativity, innovation, and technical depth
-- Goal: be the most memorable demo in the room

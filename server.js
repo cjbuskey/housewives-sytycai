@@ -129,7 +129,7 @@ function slugify(str) {
 // ─── ROUTES ───────────────────────────────────────────────────────────────────
 
 app.post('/api/transcribe', async (req, res) => {
-  const { url, showName, episodeTitle, season } = req.body;
+  const { url, showName, episodeTitle, season, cast, notes } = req.body;
 
   if (!url) return res.status(400).json({ error: 'YouTube URL is required, darling.' });
 
@@ -147,12 +147,22 @@ app.post('/api/transcribe', async (req, res) => {
     const episode = episodeTitle || 'episode';
     const filename = `${slugify(show)}-s${season || '0'}-${slugify(episode)}-${Date.now()}.json`;
 
+    const castList =
+      typeof cast === 'string' && cast.trim()
+        ? cast
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : null;
+
     const transcriptData = {
       source_url: url,
       video_id: videoId,
       show,
       season: season ? parseInt(season) : null,
       episode_title: episodeTitle || null,
+      cast: castList,
+      notes: notes && notes.trim() ? notes.trim() : null,
       extracted_at: new Date().toISOString(),
       word_count: (fullText.trim().match(/\S+/g) || []).length,
       transcript: fullText,

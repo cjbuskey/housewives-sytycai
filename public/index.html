@@ -1,153 +1,170 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reunion Ready — AI Drama Coach</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-
-  <!-- HERO HEADER -->
-  <header class="hero">
-    <div class="hero-inner">
-      <div class="diamond-row">
-        <span class="diamond">◆</span>
-        <span class="diamond sm">◆</span>
-        <span class="diamond sm">◆</span>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reunion Ready — AI Drama Coach</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Lato:wght@300;400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- HERO HEADER -->
+    <header class="hero">
+      <div class="hero-inner">
+        <div class="diamond-row">
+          <span class="diamond">◆</span>
+          <span class="diamond sm">◆</span>
+          <span class="diamond sm">◆</span>
+        </div>
+        <p class="network-label">BRAVO &nbsp;✦&nbsp; SO YOU THINK YOU CAN AI</p>
+        <h1 class="title">REUNION<br /><span class="title-accent">READY</span></h1>
+        <p class="subtitle">The AI Drama Coach</p>
+        <p class="tagline">The tea never spills itself, darling.</p>
+        <div class="diamond-row flip">
+          <span class="diamond sm">◆</span>
+          <span class="diamond sm">◆</span>
+          <span class="diamond">◆</span>
+        </div>
       </div>
-      <p class="network-label">BRAVO &nbsp;✦&nbsp; SO YOU THINK YOU CAN AI</p>
-      <h1 class="title">REUNION<br /><span class="title-accent">READY</span></h1>
-      <p class="subtitle">The AI Drama Coach</p>
-      <p class="tagline">The tea never spills itself, darling.</p>
-      <div class="diamond-row flip">
-        <span class="diamond sm">◆</span>
-        <span class="diamond sm">◆</span>
-        <span class="diamond">◆</span>
-      </div>
-    </div>
-  </header>
+    </header>
 
-  <!-- MAIN CONTENT -->
-  <main>
-
-    <!-- FORM CARD -->
-    <section class="card confessional">
-      <div class="card-header">
-        <span class="card-eyebrow">🎬 CONFESSIONAL BOOTH</span>
-        <h2>Submit Your Episode</h2>
-        <p class="card-desc">Paste a YouTube reunion URL and we'll pull the receipts — every word, every shade, every lie.</p>
-      </div>
-
-      <form id="transcribe-form">
-        <div class="field">
-          <label for="url">YouTube URL <span class="required">*</span></label>
-          <input
-            type="url"
-            id="url"
-            name="url"
-            placeholder="https://youtube.com/watch?v=..."
-            required
-            autocomplete="off"
-          />
+    <!-- MAIN CONTENT -->
+    <main>
+      <!-- FORM CARD -->
+      <section class="card confessional">
+        <div class="card-header">
+          <span class="card-eyebrow">🎬 CONFESSIONAL BOOTH</span>
+          <h2>Submit Your Episode</h2>
+          <p class="card-desc">
+            Paste a YouTube reunion URL and we'll pull the receipts — every word, every shade, every
+            lie.
+          </p>
         </div>
 
-        <div class="field-row">
+        <form id="transcribe-form">
           <div class="field">
-            <label for="showName">Franchise</label>
+            <label for="url">YouTube URL <span class="required">*</span></label>
+            <input
+              type="url"
+              id="url"
+              name="url"
+              placeholder="https://youtube.com/watch?v=..."
+              required
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="showName">Franchise</label>
+              <input
+                type="text"
+                id="showName"
+                name="showName"
+                placeholder="Real Housewives of Beverly Hills"
+              />
+            </div>
+            <div class="field field-sm">
+              <label for="season">Season</label>
+              <input type="number" id="season" name="season" placeholder="13" min="1" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="episodeTitle">Episode Title</label>
+            <input type="text" id="episodeTitle" name="episodeTitle" placeholder="Reunion Part 1" />
+          </div>
+
+          <div class="field">
+            <label for="cast">Cast <span class="hint">(comma-separated)</span></label>
             <input
               type="text"
-              id="showName"
-              name="showName"
-              placeholder="Real Housewives of Beverly Hills"
+              id="cast"
+              name="cast"
+              placeholder="Heather Gay, Lisa Barlow, Meredith Marks, Whitney Rose, ..."
             />
           </div>
-          <div class="field field-sm">
-            <label for="season">Season</label>
-            <input
-              type="number"
-              id="season"
-              name="season"
-              placeholder="13"
-              min="1"
-            />
+
+          <div class="field">
+            <label for="notes"
+              >Additional Context
+              <span class="hint">(optional — producer notes for the AI)</span></label
+            >
+            <textarea
+              id="notes"
+              name="notes"
+              rows="3"
+              placeholder="e.g. Monica Garcia is new this season. The lawsuit storyline dominates part 2."
+            ></textarea>
+          </div>
+
+          <button type="submit" class="btn-primary" id="submit-btn">
+            <span class="btn-text">SERVE THE RECEIPTS</span>
+            <span class="btn-loading hidden">Spilling the tea&hellip;</span>
+          </button>
+        </form>
+      </section>
+
+      <!-- ERROR STATE -->
+      <section class="card card-error hidden" id="error-card">
+        <span class="status-icon">💔</span>
+        <h3>Honey, we have a problem.</h3>
+        <p id="error-message"></p>
+      </section>
+
+      <!-- SUCCESS STATE -->
+      <section class="card card-success hidden" id="success-card">
+        <div class="success-header">
+          <span class="status-icon">🍵</span>
+          <h3>The receipts have been served, darling.</h3>
+        </div>
+
+        <div class="receipt-grid">
+          <div class="receipt-item">
+            <span class="receipt-label">FILE</span>
+            <span class="receipt-value" id="result-filename"></span>
+          </div>
+          <div class="receipt-item">
+            <span class="receipt-label">GCS PATH</span>
+            <span class="receipt-value mono" id="result-gcs"></span>
+          </div>
+          <div class="receipt-item">
+            <span class="receipt-label">WORD COUNT</span>
+            <span class="receipt-value" id="result-words"></span>
+          </div>
+          <div class="receipt-item">
+            <span class="receipt-label">STATUS</span>
+            <span class="receipt-value status-ok">Enrichment pipeline triggered ✓</span>
           </div>
         </div>
 
-        <div class="field">
-          <label for="episodeTitle">Episode Title</label>
-          <input
-            type="text"
-            id="episodeTitle"
-            name="episodeTitle"
-            placeholder="Reunion Part 1"
-          />
+        <div class="preview-block">
+          <p class="preview-label">📜 TRANSCRIPT PREVIEW</p>
+          <blockquote id="result-preview"></blockquote>
         </div>
 
-        <button type="submit" class="btn-primary" id="submit-btn">
-          <span class="btn-text">SERVE THE RECEIPTS</span>
-          <span class="btn-loading hidden">Spilling the tea&hellip;</span>
-        </button>
-      </form>
-    </section>
+        <button class="btn-secondary" id="reset-btn">Submit Another Episode</button>
+      </section>
+    </main>
 
-    <!-- ERROR STATE -->
-    <section class="card card-error hidden" id="error-card">
-      <span class="status-icon">💔</span>
-      <h3>Honey, we have a problem.</h3>
-      <p id="error-message"></p>
-    </section>
-
-    <!-- SUCCESS STATE -->
-    <section class="card card-success hidden" id="success-card">
-      <div class="success-header">
-        <span class="status-icon">🍵</span>
-        <h3>The receipts have been served, darling.</h3>
+    <!-- FOOTER -->
+    <footer>
+      <div class="diamond-row">
+        <span class="diamond sm">◆</span>
+        <span class="diamond xs">◆</span>
+        <span class="diamond sm">◆</span>
       </div>
+      <p>Reunion Ready &nbsp;✦&nbsp; Built for <strong>So You Think You Can AI</strong></p>
+      <p class="footer-sub">
+        Powered by Claude AI &nbsp;·&nbsp; Salesforce Agentforce &nbsp;·&nbsp; GCP
+      </p>
+    </footer>
 
-      <div class="receipt-grid">
-        <div class="receipt-item">
-          <span class="receipt-label">FILE</span>
-          <span class="receipt-value" id="result-filename"></span>
-        </div>
-        <div class="receipt-item">
-          <span class="receipt-label">GCS PATH</span>
-          <span class="receipt-value mono" id="result-gcs"></span>
-        </div>
-        <div class="receipt-item">
-          <span class="receipt-label">WORD COUNT</span>
-          <span class="receipt-value" id="result-words"></span>
-        </div>
-        <div class="receipt-item">
-          <span class="receipt-label">STATUS</span>
-          <span class="receipt-value status-ok">Enrichment pipeline triggered ✓</span>
-        </div>
-      </div>
-
-      <div class="preview-block">
-        <p class="preview-label">📜 TRANSCRIPT PREVIEW</p>
-        <blockquote id="result-preview"></blockquote>
-      </div>
-
-      <button class="btn-secondary" id="reset-btn">Submit Another Episode</button>
-    </section>
-
-  </main>
-
-  <!-- FOOTER -->
-  <footer>
-    <div class="diamond-row">
-      <span class="diamond sm">◆</span>
-      <span class="diamond xs">◆</span>
-      <span class="diamond sm">◆</span>
-    </div>
-    <p>Reunion Ready &nbsp;✦&nbsp; Built for <strong>So You Think You Can AI</strong></p>
-    <p class="footer-sub">Powered by Claude AI &nbsp;·&nbsp; Salesforce Agentforce &nbsp;·&nbsp; GCP</p>
-  </footer>
-
-  <script src="app.js"></script>
-</body>
+    <script src="app.js"></script>
+  </body>
 </html>
