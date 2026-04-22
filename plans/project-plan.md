@@ -162,12 +162,48 @@ The agent should feel like a seasoned Bravo producer — theatrical, knowing, sl
 - Trigger: "Write [Housewife]'s confessional" / "What should Erika say in her talking-head?"
 - Action: Return `Confessional_Draft__c` from Contact, optionally send to ElevenLabs for voice
 
-### ElevenLabs Integration (Bonus)
+### ElevenLabs Integration — "Playback Room" (Bonus)
 
-- [ ] Set up ElevenLabs API key and select a dramatic voice
-- [ ] Add a "Hear it" button in the local web app that sends confessional text to ElevenLabs
-- [ ] Return audio playback in browser
-- Use for: confessional narration, key moment re-narration
+**Goal:** A dedicated page in the local Node.js app where you pick a Housewife, see her AI-generated confessional, and play it aloud in a dramatic voice. Closes the demo with a memorable audio "ta-da" moment.
+
+**Architecture:**
+
+```
+/playback page
+   │
+   ├── Dropdown populated from GET /api/housewives
+   │     (reads gs://sytycai-video-transcripts-enriched/)
+   │
+   ├── Shows confessional_draft text when a Housewife is picked
+   │
+   └── "Play" button → POST /api/speak → ElevenLabs API → MP3 streamed back
+```
+
+**Tasks:**
+
+- [ ] Sign up at elevenlabs.io, grab API key (free tier = ~10k chars/mo, plenty for demo)
+- [ ] Audition 3–4 voices for Bravo-narrator energy (Matilda, Charlotte, Charlie are worth trying); commit to one `voice_id`
+- [ ] Add `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID` to `.env.example` and `.env`
+- [ ] Add new Express route `GET /api/housewives` — reads enriched bucket, returns a grouped list: `[{show, season, housewives: [{name, confessional}]}]`
+- [ ] Add new Express route `POST /api/speak` — takes `{text}`, calls ElevenLabs `/v1/text-to-speech/{voice_id}`, streams the MP3 response back to the browser
+- [ ] Create `public/playback.html` — dropdown + confessional preview + play button, matching the existing Bravo aesthetic
+- [ ] Create `public/playback.js` — fetch housewives list on load, wire up the play button to an `<audio>` element
+- [ ] Add a navigation link from `index.html` to `/playback`
+- [ ] Optional polish: cache generated MP3s locally so repeat plays don't burn quota
+
+**Demo payoff:**
+
+After the Agentforce chat demo ends ("Brief me on Meredith…"), click over to the Playback Room and let Meredith's AI-written confessional play in a dramatic voice. Hands-off theatrical moment — judges _hear_ the output instead of just reading it.
+
+**Cost/quota notes:**
+
+- ElevenLabs free tier: 10,000 characters/month. A single confessional is ~300 chars → ~33 plays per month before hitting the cap.
+- Recommend caching generated audio by confessional text hash so the demo doesn't regenerate on every button press.
+
+**Use for (out of scope for initial build, keep in mind):**
+
+- Re-narration of `key_moments` in addition to confessionals
+- Audio intro/outro for the reunion briefing ("Tonight on the reunion…")
 
 ### Sample Prompts to Demo
 
