@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Playback Room — Reunion Ready</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Lato:wght@300;400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- HERO -->
+    <header class="hero">
+      <div class="hero-inner">
+        <div class="diamond-row">
+          <span class="diamond">◆</span>
+          <span class="diamond sm">◆</span>
+          <span class="diamond sm">◆</span>
+        </div>
+        <p class="network-label">BRAVO &nbsp;✦&nbsp; THE PLAYBACK ROOM</p>
+        <h1 class="title">HEAR<br /><span class="title-accent">THE TEA</span></h1>
+        <p class="subtitle">Confessionals, Read Aloud</p>
+        <p class="tagline">Every word. Every pause. Every dagger.</p>
+        <div class="diamond-row flip">
+          <span class="diamond sm">◆</span>
+          <span class="diamond sm">◆</span>
+          <span class="diamond">◆</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="card">
+        <div class="card-header">
+          <span class="card-eyebrow">🎙️ NOW PLAYING</span>
+          <h2>Pick a Housewife</h2>
+          <p class="card-desc">
+            Her AI-written confessional — read aloud in a theatrical voice. Choose wisely.
+          </p>
+        </div>
+
+        <div class="field">
+          <label for="search">Search</label>
+          <input type="search" id="search" placeholder="Type a name, show, or season…" disabled />
+        </div>
+
+        <div class="field">
+          <label>Housewives</label>
+          <div id="housewife-list" class="housewife-list" aria-live="polite" role="listbox">
+            <div class="housewife-list-empty">Loading confessionals…</div>
+          </div>
+        </div>
+
+        <div id="preview-wrap" class="hidden">
+          <div class="receipt-grid" style="margin-bottom: 20px">
+            <div class="receipt-item">
+              <span class="receipt-label">HOUSEWIFE</span>
+              <span class="receipt-value" id="meta-name"></span>
+            </div>
+            <div class="receipt-item">
+              <span class="receipt-label">DRAMA SCORE</span>
+              <span class="receipt-value" id="meta-score"></span>
+            </div>
+            <div class="receipt-item">
+              <span class="receipt-label">SHOW</span>
+              <span class="receipt-value" id="meta-show"></span>
+            </div>
+            <div class="receipt-item">
+              <span class="receipt-label">EPISODE</span>
+              <span class="receipt-value" id="meta-episode"></span>
+            </div>
+          </div>
+
+          <div class="preview-block">
+            <p class="preview-label">💬 CONFESSIONAL DRAFT</p>
+            <blockquote id="confessional-text"></blockquote>
+          </div>
+
+          <button type="button" class="btn-primary" id="play-btn">
+            <span class="btn-text">▶ PLAY CONFESSIONAL</span>
+            <span class="btn-loading hidden">Pouring the tea&hellip;</span>
+          </button>
+
+          <audio id="audio" controls class="audio-player hidden"></audio>
+        </div>
+      </section>
+
+      <section class="card card-error hidden" id="error-card">
+        <span class="status-icon">💔</span>
+        <h3>Oh honey.</h3>
+        <p id="error-message"></p>
+      </section>
+
+      <section class="card empty-card hidden" id="empty-card">
+        <span class="status-icon">🫖</span>
+        <h3>The tea kettle is empty.</h3>
+        <p>No enriched confessionals found yet. Submit an episode first.</p>
+        <a href="/" class="btn-secondary" style="display: inline-block; margin-top: 16px"
+          >← Back to the Confessional Booth</a
+        >
+      </section>
+    </main>
+
+    <footer>
+      <div class="diamond-row">
+        <span class="diamond sm">◆</span>
+        <span class="diamond xs">◆</span>
+        <span class="diamond sm">◆</span>
+      </div>
+      <p><a href="/" class="footer-link">← Back to the Confessional Booth</a></p>
+      <p class="footer-sub">Voice by ElevenLabs &nbsp;·&nbsp; Text by Claude</p>
+    </footer>
+
+    <script src="playback.js"></script>
+  </body>
+</html>

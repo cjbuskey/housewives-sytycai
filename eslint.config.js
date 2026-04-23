@@ -20,6 +20,7 @@ module.exports = [
         process: 'readonly',
         console: 'readonly',
         fetch: 'readonly',
+        Buffer: 'readonly',
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
       },
@@ -46,6 +47,7 @@ module.exports = [
         console: 'readonly',
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
+        URL: 'readonly',
       },
     },
     rules: {

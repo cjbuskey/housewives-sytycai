@@ -187,6 +187,106 @@ app.post('/api/transcribe', async (req, res) => {
   }
 });
 
+// ─── PLAYBACK ROOM ────────────────────────────────────────────────────────────
+
+app.get('/playback', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'playback.html'));
+});
+
+// Reads all enriched files from the enriched bucket, returns a flat list of
+// Housewife confessionals with show/season metadata for the Playback Room UI.
+app.get('/api/housewives', async (_req, res) => {
+  try {
+    const enrichedBucketName =
+      process.env.GCS_ENRICHED_BUCKET || 'sytycai-video-transcripts-enriched';
+    const bucket = getStorage().bucket(enrichedBucketName);
+    const [files] = await bucket.getFiles();
+
+    const perFile = await Promise.all(
+      files
+        .filter((f) => f.name.endsWith('.json'))
+        .map(async (file) => {
+          try {
+            const [contents] = await file.download();
+            const data = JSON.parse(contents.toString());
+            const source = data.source || {};
+            return (data.profiles || [])
+              .filter((p) => p && p.confessional_draft)
+              .map((p) => ({
+                show: source.show || data.franchise || 'Real Housewives',
+                season: source.season ?? null,
+                episode_title: source.episode_title || null,
+                housewife: p.housewife_name,
+                drama_score: p.drama_score ?? null,
+                confessional: p.confessional_draft,
+                source_file: file.name,
+              }));
+          } catch (err) {
+            console.warn(`Skipping ${file.name}: ${err.message}`);
+            return [];
+          }
+        })
+    );
+
+    const items = perFile.flat();
+    res.json({ count: items.length, items });
+  } catch (err) {
+    console.error('Housewives list error:', err);
+    res.status(500).json({ error: err.message || 'Failed to list housewives.' });
+  }
+});
+
+// Proxies text to ElevenLabs TTS and streams the MP3 back to the browser.
+app.post('/api/speak', async (req, res) => {
+  const { text } = req.body;
+  if (!text || typeof text !== 'string') {
+    return res.status(400).json({ error: 'text is required' });
+  }
+
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'ELEVENLABS_API_KEY is not set.' });
+  }
+  const voiceId = process.env.ELEVENLABS_VOICE_ID || 'XrExE9yKIg1WjnnlVkGX'; // Matilda
+
+  try {
+    const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json',
+        Accept: 'audio/mpeg',
+      },
+      body: JSON.stringify({
+        text,
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: {
+          stability: 0.4,
+          similarity_boost: 0.75,
+          style: 0.6,
+          use_speaker_boost: true,
+        },
+      }),
+    });
+
+    if (!r.ok) {
+      const errText = await r.text();
+      console.error(`ElevenLabs API error ${r.status}:`, errText);
+      return res
+        .status(r.status)
+        .json({ error: `ElevenLabs returned ${r.status}. Check your API key and quota.` });
+    }
+
+    const buf = Buffer.from(await r.arrayBuffer());
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Content-Length', buf.length);
+    res.send(buf);
+  } catch (err) {
+    console.error('Speak error:', err);
+    res.status(500).json({ error: err.message || 'Failed to generate audio.' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Reunion Ready is serving looks on port ${PORT} 💅`);
 });

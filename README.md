@@ -72,6 +72,31 @@ After looking at the enriched output, if you notice Claude mis-attributing speci
 
 Then re-upload the file to re-trigger enrichment. See [cloud-function/README.md](cloud-function/README.md#input-json-optional-grounding-fields) for full details. This field is intentionally not on the form — it's an iterative refinement you'd only do after seeing initial output.
 
+## Playback Room
+
+A second page in the same Node app that reads an enriched Housewife's AI-drafted confessional aloud using ElevenLabs. It's the audio payoff for the demo.
+
+Open <http://localhost:3000/playback> once the server's running.
+
+**Setup (one-time):**
+
+1. Sign up at [elevenlabs.io](https://elevenlabs.io)
+2. Profile → API Keys → create a key
+3. (Optional) browse **Voice Library** for a voice that fits — the default `ELEVENLABS_VOICE_ID` in `.env.example` is Matilda, a theatrical pre-made voice
+4. Set these in your `.env`:
+   ```
+   ELEVENLABS_API_KEY=sk_...
+   ELEVENLABS_VOICE_ID=<voice id>
+   ```
+5. Restart `npm start`
+
+**How it works:**
+
+- `GET /api/housewives` — reads every file in `gs://sytycai-video-transcripts-enriched/` and returns a flat list of Housewife + confessional entries
+- The `/playback` page groups those by Housewife with a searchable list UI
+- Click a row → see her confessional text → hit **PLAY**
+- `POST /api/speak` proxies the text to ElevenLabs and streams the MP3 back to the browser
+
 **Scripts:**
 
 ```bash

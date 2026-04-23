@@ -233,7 +233,8 @@ label {
 input[type='url'],
 input[type='text'],
 input[type='number'],
-textarea {
+textarea,
+select {
   background: var(--surface-2);
   border: 1px solid rgba(255, 215, 0, 0.2);
   border-radius: var(--radius);
@@ -259,9 +260,169 @@ textarea::placeholder {
 }
 
 input:focus,
-textarea:focus {
+textarea:focus,
+select:focus {
   border-color: var(--pink);
   box-shadow: 0 0 0 3px var(--pink-glow);
+}
+
+select {
+  appearance: none;
+  cursor: pointer;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--gold-dim) 50%),
+    linear-gradient(135deg, var(--gold-dim) 50%, transparent 50%);
+  background-position:
+    calc(100% - 20px) center,
+    calc(100% - 14px) center;
+  background-size:
+    6px 6px,
+    6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 40px;
+}
+
+select:disabled,
+input[type='search']:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+input[type='search'] {
+  -webkit-appearance: none;
+  appearance: none;
+  padding: 16px 18px;
+  font-size: 16px;
+}
+
+/* ─── HOUSEWIFE LIST (Playback Room) ─── */
+.housewife-list {
+  max-height: 420px;
+  overflow-y: auto;
+  background: var(--surface-2);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: var(--radius);
+  padding: 8px;
+}
+
+.housewife-list-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 14px;
+}
+
+.housewife-group-label {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-weight: 700;
+  color: var(--gold);
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  padding: 14px 12px 6px;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+  margin-bottom: 4px;
+  position: sticky;
+  top: -8px;
+  background: var(--surface-2);
+  z-index: 1;
+}
+
+.housewife-group-label:first-child {
+  padding-top: 6px;
+}
+
+.housewife-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 14px;
+  margin: 2px 0;
+  border-radius: 2px;
+  cursor: pointer;
+  color: var(--text);
+  font-size: 14px;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.housewife-row:hover {
+  background: rgba(233, 30, 140, 0.12);
+}
+
+.housewife-row:focus-visible {
+  outline: 2px solid var(--pink);
+  outline-offset: -2px;
+}
+
+.housewife-row.selected {
+  background: linear-gradient(90deg, var(--pink-dark), var(--pink));
+  color: #fff;
+}
+
+.housewife-row-meta {
+  color: var(--text-muted);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  flex: 1;
+}
+
+.housewife-row.selected .housewife-row-meta {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.housewife-row-score {
+  font-family: var(--ff-display);
+  font-weight: 700;
+  color: var(--gold);
+  font-size: 14px;
+  min-width: 32px;
+  text-align: right;
+}
+
+.housewife-row.selected .housewife-row-score {
+  color: #fff;
+}
+
+.audio-player {
+  width: 100%;
+  margin-top: 20px;
+  border-radius: var(--radius);
+}
+
+.audio-player::-webkit-media-controls-panel {
+  background: var(--surface-2);
+}
+
+.empty-card {
+  text-align: center;
+  padding: 40px 32px;
+}
+
+.empty-card h3 {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 22px;
+  color: var(--gold);
+  margin-bottom: 10px;
+}
+
+.empty-card p {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.footer-link {
+  color: var(--gold);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footer-link:hover {
+  color: var(--pink);
 }
 
 .hint {
