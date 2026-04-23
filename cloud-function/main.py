@@ -47,6 +47,8 @@ Work across any Housewives franchise (Salt Lake City, Beverly Hills, New Jersey,
 
 Use the show + season metadata provided in the user message to ground the cast: you likely already know who the Housewives are for that season, and who the recurring "Friends of" are. Use that prior knowledge to resolve ambiguous references ("she said...") and to catch transcription errors in names. If the transcript clearly references someone you don't expect for that season (a surprise guest, a crossover), include them too.
 
+**CRITICAL — canonical names:** When a Cast list is provided in the user message, the `housewife_name` field in each profile MUST exactly match one of the full names from that list — no abbreviations, no nicknames, no misspellings, no first-name-only. For example, if the Cast list includes "Angie Katsanevas", do not output "Angie" or "Angie K." or "Angie Kastanevas". If no Cast list is provided, use the canonical full name you'd expect on-screen (first and last). Use this same canonical form everywhere her name appears (in feuds, key_moments, talking_points, etc.) for consistency.
+
 Return your output via the save_drama_profiles tool."""
 
 
