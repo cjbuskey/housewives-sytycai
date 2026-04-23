@@ -42,7 +42,7 @@ Data Cloud data stream → Contact harmonization → Agentforce
 - [x] Set up GCP Cloud Storage bucket (`sytycai-video-transcripts`)
 - [x] On form submit: extract transcript → upload as `{show}-{season}-{episode}-{timestamp}.json` to GCP
 - [x] Display confirmation with GCP file path and transcript preview
-- [x] Seed 3–5 RHOSLC reunion episodes into GCS for the demo
+- [x] Seed 15 RHOSLC reunion episodes into GCS for the demo
 
 ### Output Schema (stored in GCP)
 
@@ -66,18 +66,18 @@ Data Cloud data stream → Contact harmonization → Agentforce
 ### GCP Setup
 
 - [x] Create second bucket: `sytycai-video-transcripts-enriched`
-- [ ] Deploy a Cloud Function (Python or Node.js, 2nd gen) to the same GCP project
-- [ ] Set trigger: `google.cloud.storage.object.v1.finalized` on `sytycai-video-transcripts` bucket
-- [ ] Grant the Cloud Function's service account read access to `sytycai-video-transcripts` and write access to `sytycai-video-transcripts-enriched`
-- [ ] Store the Anthropic API key in GCP Secret Manager; bind it to the function
+- [x] Deploy a Cloud Function (Python or Node.js, 2nd gen) to the same GCP project
+- [x] Set trigger: `google.cloud.storage.object.v1.finalized` on `sytycai-video-transcripts` bucket
+- [x] Grant the Cloud Function's service account read access to `sytycai-video-transcripts` and write access to `sytycai-video-transcripts-enriched`
+- [x] Store the Anthropic API key in GCP Secret Manager; bind it to the function
 
 ### Function Logic
 
-- [ ] On trigger: download the raw JSON file from GCS
-- [ ] Call Claude with the transcript as user message (system prompt cached)
-- [ ] Parse and validate the JSON response
-- [ ] Upload enriched output to `sytycai-video-transcripts-enriched/` as `{original-filename}-enriched.json`
-- [ ] Log success/failure to Cloud Logging
+- [x] On trigger: download the raw JSON file from GCS
+- [x] Call Claude with the transcript as user message (system prompt cached)
+- [x] Parse and validate the JSON response
+- [x] Upload enriched output to `sytycai-video-transcripts-enriched/` as `{original-filename}-enriched.json`
+- [] Log success/failure to Cloud Logging
 
 ### Claude Enrichment Prompt (system)
 
@@ -181,14 +181,14 @@ The agent should feel like a seasoned Bravo producer — theatrical, knowing, sl
 
 **Tasks:**
 
-- [ ] Sign up at elevenlabs.io, grab API key (free tier = ~10k chars/mo, plenty for demo)
-- [ ] Audition 3–4 voices for Bravo-narrator energy (Matilda, Charlotte, Charlie are worth trying); commit to one `voice_id`
-- [ ] Add `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID` to `.env.example` and `.env`
-- [ ] Add new Express route `GET /api/housewives` — reads enriched bucket, returns a grouped list: `[{show, season, housewives: [{name, confessional}]}]`
-- [ ] Add new Express route `POST /api/speak` — takes `{text}`, calls ElevenLabs `/v1/text-to-speech/{voice_id}`, streams the MP3 response back to the browser
-- [ ] Create `public/playback.html` — dropdown + confessional preview + play button, matching the existing Bravo aesthetic
-- [ ] Create `public/playback.js` — fetch housewives list on load, wire up the play button to an `<audio>` element
-- [ ] Add a navigation link from `index.html` to `/playback`
+- [x] Sign up at elevenlabs.io, grab API key (free tier = ~10k chars/mo, plenty for demo)
+- [x] Audition 3–4 voices for Bravo-narrator energy (Matilda, Charlotte, Charlie are worth trying); commit to one `voice_id`
+- [x] Add `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID` to `.env.example` and `.env`
+- [x] Add new Express route `GET /api/housewives` — reads enriched bucket, returns a grouped list: `[{show, season, housewives: [{name, confessional}]}]`
+- [x] Add new Express route `POST /api/speak` — takes `{text}`, calls ElevenLabs `/v1/text-to-speech/{voice_id}`, streams the MP3 response back to the browser
+- [x] Create `public/playback.html` — dropdown + confessional preview + play button, matching the existing Bravo aesthetic
+- [x] Create `public/playback.js` — fetch housewives list on load, wire up the play button to an `<audio>` element
+- [x] Add a navigation link from `index.html` to `/playback`
 - [ ] Optional polish: cache generated MP3s locally so repeat plays don't burn quota
 
 **Demo payoff:**
@@ -219,13 +219,22 @@ After the Agentforce chat demo ends ("Brief me on Meredith…"), click over to t
 
 ## Demo Flow (Contest Presentation)
 
-1. Show the local ingestion app — paste a YouTube reunion URL, watch transcript appear
-2. Trigger enrichment — show Claude's drama analysis output
-3. Open Salesforce — show Contact records with drama scores populated
-4. Open Agentforce chat — ask "Brief me on Erika before tonight"
-5. Ask for comebacks — show Comeback Generator
-6. Trigger Confessional Generator — optionally play ElevenLabs audio
-7. Close with the feud map for maximum drama
+Run with **three browser tabs** staged and ready:
+
+- **Tab A:** Local ingestion app → `http://localhost:3000`
+- **Tab B:** Agentforce chat (in Salesforce org)
+- **Tab C:** Playback Room → `http://localhost:3000/playback`
+
+**The flow:**
+
+1. **Tab A (ingestion)** — paste a YouTube reunion URL, submit. Show the transcript land in GCS. Mention the Cloud Function auto-triggers from here. _(This is the "see it work live" moment — actual demo data was pre-seeded to avoid YouTube blocking the live scrape.)_
+2. Briefly show the enriched JSON that the Cloud Function produced — drama scores, feuds, confessional drafts per Housewife.
+3. **(Salesforce)** show the Contact record for a Housewife with the custom fields populated by Data Cloud harmonization.
+4. **Tab B (Agentforce)** — ask _"Brief me on Meredith before tonight"_ → agent responds in Bravo-producer voice with her drama score, feuds, talking points.
+5. Ask _"Give me three comebacks if she mentions the shop"_ → Comeback Generator in action.
+6. Ask _"Who's feuding with who this season?"_ → Feud Map shows the drama web.
+7. Ask _"Write Meredith's confessional"_ → agent returns the AI-drafted talking-head script as text.
+8. **Tab C (Playback Room)** — the audio payoff. Pick Meredith → hit ▶ PLAY → her confessional reads aloud in Carolina's voice. Drop the mic.
 
 **Talking point for judges:** "We took Data Cloud + Agentforce and made them do something completely unexpected — and completely unforgettable."
 
@@ -246,9 +255,9 @@ After the Agentforce chat demo ends ("Brief me on Meredith…"), click over to t
 
 ## Open Questions / Decisions Needed
 
-- [ ] Which franchise(es) to use? (RHOBH is a strong choice — high drama, lots of reunion content)
-- [ ] Which YouTube episodes/reunions to ingest for the demo?
-- [ ] Who owns the Data Cloud / Agentforce org setup?
-- [ ] Which GCP project/region to deploy into?
-- [ ] Who owns GCP credentials and Secret Manager setup?
-- [ ] ElevenLabs voice selection — which voice fits a Bravo narrator?
+- [x] Which franchise(es) to use? (RHOBH is a strong choice — high drama, lots of reunion content)
+- [x] Which YouTube episodes/reunions to ingest for the demo?
+- [x] Who owns the Data Cloud / Agentforce org setup?
+- [x] Which GCP project/region to deploy into?
+- [x] Who owns GCP credentials and Secret Manager setup?
+- [x] ElevenLabs voice selection — which voice fits a Bravo narrator?
