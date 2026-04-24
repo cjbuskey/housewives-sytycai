@@ -69,6 +69,18 @@ SF_PRIVATE_KEY_PATH=server.key
 
 If any `SF_*` var is missing, `/coach` shows a lock screen — the Salesforce-native chat remains the fallback.
 
+## Data Cloud CSV Pipeline
+
+The Cloud Function writes both a JSON and a flat CSV for every enriched transcript. The CSV (`csv/<filename>.csv`, one row per cast member) is what Data Cloud ingests — it's easier to map than nested JSON.
+
+To backfill CSVs for any enriched files that pre-date this change:
+
+```bash
+cd cloud-function
+python backfill_csv.py          # preview first
+python backfill_csv.py --dry-run
+```
+
 ## Scripts
 
 ```bash

@@ -1,0 +1,148 @@
+const express = require('express');
+const { getStorage } = require('../lib/storage');
+
+const router = express.Router();
+
+const INNERTUBE_URL = 'https://www.youtube.com/youtubei/v1/player?prettyPrint=false';
+const ANDROID_UA = 'com.google.android.youtube/20.10.38 (Linux; U; Android 14)';
+const BROWSER_UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36';
+
+function decodeEntities(str) {
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '\u0022')
+    .replace(/&#39;/g, '\u0027')
+    .replace(/&apos;/g, '\u0027')
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/#(\d+);/g, (_, d) => String.fromCodePoint(parseInt(d, 10)));
+}
+
+function parseTranscriptXml(xml, lang) {
+  const segments = [];
+  const newFmt = /<p\s+t="(\d+)"\s+d="(\d+)"[^>]*>([\s\S]*?)<\/p>/g;
+  let m;
+  while ((m = newFmt.exec(xml)) !== null) {
+    const text = decodeEntities(m[3].replace(/<[^>]+>/g, '')).trim();
+    if (text) segments.push({ offset: parseInt(m[1]), duration: parseInt(m[2]), text, lang });
+  }
+  if (segments.length) return segments;
+  const oldFmt = /<text start="([^"]*)" dur="([^"]*)">([^<]*)<\/text>/g;
+  while ((m = oldFmt.exec(xml)) !== null) {
+    segments.push({
+      offset: Math.round(parseFloat(m[1]) * 1000),
+      duration: Math.round(parseFloat(m[2]) * 1000),
+      text: decodeEntities(m[3]),
+      lang,
+    });
+  }
+  return segments;
+}
+
+async function fetchTranscript(videoId) {
+  const res = await fetch(INNERTUBE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'User-Agent': ANDROID_UA },
+    body: JSON.stringify({
+      context: { client: { clientName: 'ANDROID', clientVersion: '20.10.38' } },
+      videoId,
+    }),
+  });
+
+  if (!res.ok) throw new Error(`YouTube API responded with ${res.status}`);
+
+  const data = await res.json();
+  const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+  if (!tracks?.length) throw new Error('No transcripts are available for this video.');
+
+  const trackUrl = tracks[0].baseUrl;
+  const lang = tracks[0].languageCode || 'en';
+
+  const xmlRes = await fetch(trackUrl, { headers: { 'User-Agent': BROWSER_UA } });
+  if (!xmlRes.ok) throw new Error('Failed to fetch transcript data from YouTube.');
+
+  const xml = await xmlRes.text();
+  const segments = parseTranscriptXml(xml, lang);
+  if (!segments.length) throw new Error('Transcript was empty or could not be parsed.');
+  return segments;
+}
+
+function extractVideoId(url) {
+  const m = url.match(
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/
+  );
+  return m ? m[1] : null;
+}
+
+function slugify(str) {
+  return (str || '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '');
+}
+
+router.post('/api/transcribe', async (req, res) => {
+  const { url, showName, episodeTitle, season, cast, notes } = req.body;
+
+  if (!url) return res.status(400).json({ error: 'YouTube URL is required, darling.' });
+
+  const videoId = extractVideoId(url);
+  if (!videoId)
+    return res
+      .status(400)
+      .json({ error: 'That URL is giving us nothing. Try a valid YouTube link.' });
+
+  try {
+    const segments = await fetchTranscript(videoId);
+    const fullText = segments.map((s) => s.text).join(' ');
+
+    const show = showName || 'Real Housewives';
+    const episode = episodeTitle || 'episode';
+    const filename = `${slugify(show)}-s${season || '0'}-${slugify(episode)}-${Date.now()}.json`;
+
+    const castList =
+      typeof cast === 'string' && cast.trim()
+        ? cast
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : null;
+
+    const transcriptData = {
+      source_url: url,
+      video_id: videoId,
+      show,
+      season: season ? parseInt(season) : null,
+      episode_title: episodeTitle || null,
+      cast: castList,
+      notes: notes && notes.trim() ? notes.trim() : null,
+      extracted_at: new Date().toISOString(),
+      word_count: (fullText.trim().match(/\S+/g) || []).length,
+      transcript: fullText,
+      segments,
+    };
+
+    const bucket = getStorage().bucket(process.env.GCS_RAW_BUCKET || 'sytycai-video-transcripts');
+    await bucket.file(filename).save(JSON.stringify(transcriptData, null, 2), {
+      contentType: 'application/json',
+    });
+
+    res.json({
+      success: true,
+      filename,
+      gcsPath: `gs://${process.env.GCS_RAW_BUCKET || 'sytycai-video-transcripts'}/${filename}`,
+      wordCount: transcriptData.word_count,
+      preview: fullText.slice(0, 600),
+    });
+  } catch (err) {
+    console.error('Transcription error:', err);
+    res.status(500).json({ error: err.message || 'Failed to fetch transcript.' });
+  }
+});
+
+module.exports = router;
+module.exports.extractVideoId = extractVideoId;
+module.exports.slugify = slugify;

@@ -8,9 +8,11 @@ Multi-agent AI pipeline for the SYTYCAI contest. Ingests Real Housewives reunion
 
 ```
 housewives-sytycai/
-├── server.js           # Express app (ingestion, /coach, /playback APIs)
+├── server.js           # Express entry point (mounts route modules)
+├── routes/             # transcribe.js, playback.js, coach.js
+├── lib/                # storage.js (shared GCP Storage client)
 ├── public/             # index.html, coach.html, playback.html, style.css, *.js
-├── cloud-function/     # Python enrichment Cloud Function (main.py + deploy docs)
+├── cloud-function/     # main.py (enrichment + CSV), backfill_csv.py, deploy docs
 ├── plans/project-plan.md
 ├── README.md
 └── CLAUDE.md

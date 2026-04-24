@@ -103,10 +103,16 @@ Actual prompt, tool schema, and logic live in [cloud-function/main.py](../cloud-
   - `Season__c` (Text)
   - `Confessional_Draft__c` (Long Text Area)
 
+### CSV Pipeline (for Data Cloud ingestion)
+
+The Cloud Function writes a flat CSV sibling (`csv/<filename>.csv`, one row per cast member) alongside every enriched JSON. Data Cloud ingests the CSV — easier to map than nested JSON.
+
+`cloud-function/backfill_csv.py` — one-shot script to generate CSVs for pre-existing enriched files. Run with `--dry-run` to preview.
+
 ### Data Cloud Tasks
 
-- [x] Create a Data Cloud data stream pointed at the `sytycai-video-transcripts-enriched` GCS bucket
-- [x] Map enrichment fields to Contact custom fields
+- [x] Create a Data Cloud data stream pointed at `sytycai-video-transcripts-enriched/csv/`
+- [x] Map CSV columns to Contact custom fields
 - [x] Set up identity resolution (match on `housewife_name`)
 - [x] Run harmonization to produce unified Housewife profiles
 - [x] Verify Contact records are populated via Salesforce UI
