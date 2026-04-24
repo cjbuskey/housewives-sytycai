@@ -199,6 +199,8 @@ Single browser tab: `http://localhost:3000` with three linked pages. Keep Salesf
 
 **Talking point:** "We took Data Cloud + Agentforce and made them do something completely unexpected — and completely unforgettable."
 
+**Business application close:** "The Housewives are the demo — the architecture is the point. Replace cast members with sales accounts, athletes, or executives and the pipeline is identical: unstructured content in, unified Data Cloud profiles out, Agentforce briefing the right person before the high-stakes moment. A rep briefed before a renewal call. A coach briefed before a press junket. A CEO briefed before a board meeting. Same stack, any industry."
+
 ---
 
 ## Future / Post-Contest
