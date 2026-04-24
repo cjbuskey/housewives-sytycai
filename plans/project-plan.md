@@ -189,7 +189,7 @@ Uses **JWT Bearer** OAuth (`AgentforceEmployeeAgent` requires a real user contex
 
 Single browser tab: `http://localhost:3000` with three linked pages. Keep Salesforce org open in a second tab only to briefly show Contact records.
 
-0. **Intro** — _"What if Salesforce could read the room — literally? We took unstructured content, ran it through Data Cloud and Claude, and built an AI that briefs you before you walk into any high-stakes moment. We used Real Housewives because the drama is real, the data is rich, and honestly — if it works for a reunion, it works for a boardroom."_
+0. **Intro** — _"What if Salesforce could read the room — literally? We took unstructured content, ran it through Data 360 and Claude, and built an AI agent that briefs you before you walk into any high-stakes moment. We used Real Housewives because the drama is real, the data is rich, and honestly — if it works for a Real Housewives reunion show, it works for a customer meeting."_
 
 1. **`/` (ingestion)** — paste a YouTube URL, submit. Show transcript landing in GCS. Note the Cloud Function auto-triggers. _(Demo data was pre-seeded; live scrape is for show.)_
 2. Show an enriched JSON briefly — drama scores, feuds, confessional drafts.
