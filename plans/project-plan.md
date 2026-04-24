@@ -214,3 +214,19 @@ Scope to pure logic functions only — no mocking of GCS, ElevenLabs, or Salesfo
 **Python (pytest):** `build_user_message` (grounding field threading into Claude prompt)
 
 Skip route-level tests — they're thin wrappers around external services with low signal-to-setup ratio for a demo codebase.
+
+### Per-Franchise Voice Accents (finalist live demo polish)
+
+Route `/api/speak` to a different ElevenLabs voice based on the show, so confessionals sound like they're from the right city.
+
+| Franchise | Voice vibe | Env var |
+| --------- | ---------- | ------- |
+| RHONJ     | New York / Jersey accent | `ELEVENLABS_VOICE_ID_NJ` |
+| RHOBH     | SoCal / Malibu ease | `ELEVENLABS_VOICE_ID_BH` |
+| RHOSLC    | Current default (Carolina) | `ELEVENLABS_VOICE_ID` |
+
+**Implementation sketch:**
+- Add a `show` field to the `/api/speak` request body (already available on each item in `/api/housewives`)
+- In `server.js`, map franchise slug → voice ID env var, fall back to the default female voice if unset
+- Audition voices in ElevenLabs Voice Library; save IDs to `.env`
+- Server-side TTS cache already keys on `voiceId + text`, so franchise voices are cached independently — no extra work needed
