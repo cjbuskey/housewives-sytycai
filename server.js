@@ -240,6 +240,10 @@ app.get('/api/housewives', async (_req, res) => {
   }
 });
 
+// In-memory TTS cache: hash(voiceId + text) -> Buffer
+// Keyed by content so voice changes (env var edits) naturally miss.
+const ttsCache = new Map();
+
 // Proxies text to ElevenLabs TTS and streams the MP3 back to the browser.
 app.post('/api/speak', async (req, res) => {
   const { text, gender } = req.body;
@@ -256,6 +260,17 @@ app.post('/api/speak', async (req, res) => {
   const voiceId = isMale
     ? process.env.ELEVENLABS_MALE_VOICE_ID || 'q3pCVYOxlOb5G3l2O13o' // Min Diesel
     : process.env.ELEVENLABS_VOICE_ID || 'VCUa8W1mPO0QcgrSewvs'; // Carolina
+
+  const cacheKey = crypto
+    .createHash('sha256')
+    .update(voiceId + text)
+    .digest('hex');
+  const cached = ttsCache.get(cacheKey);
+  if (cached) {
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Content-Length', cached.length);
+    return res.send(cached);
+  }
 
   try {
     const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
@@ -286,6 +301,7 @@ app.post('/api/speak', async (req, res) => {
     }
 
     const buf = Buffer.from(await r.arrayBuffer());
+    ttsCache.set(cacheKey, buf);
     res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader('Content-Length', buf.length);
     res.send(buf);

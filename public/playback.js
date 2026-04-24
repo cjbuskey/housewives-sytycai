@@ -17,6 +17,8 @@ const emptyCard = document.getElementById('empty-card');
 let items = [];
 let selectedIdx = null;
 let currentAudioUrl = null;
+// Client-side audio cache: item index -> blob URL
+const audioCache = new Map();
 
 function showError(msg) {
   errorMsg.textContent = msg;
@@ -89,10 +91,15 @@ function renderSelection(idx) {
   metaEpisode.textContent = formatEpisode(item);
   confessionalText.textContent = `"${item.confessional}"`;
   previewWrap.classList.remove('hidden');
-  audio.classList.add('hidden');
-  audio.removeAttribute('src');
-  if (currentAudioUrl) {
-    URL.revokeObjectURL(currentAudioUrl);
+
+  // If switching to a different row, stop playback but keep cached blob URLs intact
+  if (audioCache.has(idx)) {
+    currentAudioUrl = audioCache.get(idx);
+    audio.src = currentAudioUrl;
+    audio.classList.remove('hidden');
+  } else {
+    audio.classList.add('hidden');
+    audio.removeAttribute('src');
     currentAudioUrl = null;
   }
 
@@ -188,10 +195,20 @@ async function loadHousewives() {
 }
 
 playBtn.addEventListener('click', async () => {
-  const item = selectedIdx === null ? null : items[selectedIdx];
+  const idx = selectedIdx;
+  const item = idx === null ? null : items[idx];
   if (!item) return;
 
   errorCard.classList.add('hidden');
+
+  // Already cached — play immediately without hitting the server
+  if (audioCache.has(idx)) {
+    audio.src = audioCache.get(idx);
+    audio.classList.remove('hidden');
+    await audio.play();
+    return;
+  }
+
   setPlayLoading(true);
 
   try {
@@ -207,9 +224,10 @@ playBtn.addEventListener('click', async () => {
     }
 
     const blob = await res.blob();
-    if (currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
-    currentAudioUrl = URL.createObjectURL(blob);
-    audio.src = currentAudioUrl;
+    const url = URL.createObjectURL(blob);
+    audioCache.set(idx, url);
+    currentAudioUrl = url;
+    audio.src = url;
     audio.classList.remove('hidden');
     await audio.play();
   } catch (err) {
