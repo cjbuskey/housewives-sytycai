@@ -8,8 +8,8 @@ Multi-agent AI pipeline for the "So You Think You Can AI" (SYTYCAI) contest. Ing
 
 ```
 housewives-sytycai/
-├── server.js                 # Express app (ingestion + /playback API)
-├── public/                   # Frontend (index.html, playback.html, style.css, app.js, playback.js)
+├── server.js                 # Express app (ingestion + /coach + /playback APIs)
+├── public/                   # Frontend (index.html, coach.html, playback.html, style.css, ...)
 ├── cloud-function/           # Python enrichment Cloud Function (main.py + deploy docs)
 ├── plans/project-plan.md     # Full implementation plan + demo flow
 ├── .github/workflows/ci.yml  # Lint + format check on push/PR
@@ -55,6 +55,17 @@ housewives-sytycai/
 - `GET /api/housewives` reads the enriched bucket, returns a flat list grouped by Housewife in the UI
 - `POST /api/speak` proxies text to ElevenLabs TTS, streams MP3 back to the browser
 - Env vars: `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`
+
+## Coach Room Notes
+
+- Lives at `/coach` in the same Node app
+- Uses **JWT Bearer** OAuth — required for `AgentforceEmployeeAgent` (Internal Copilot); `client_credentials` can't open sessions against that type
+- `npm` dependency: `jsonwebtoken`
+- Env vars: `SF_INSTANCE_URL`, `SF_CLIENT_ID`, `SF_AGENT_ID`, `SF_DEFAULT_USERNAME`, `SF_PRIVATE_KEY_PATH` (or `SF_PRIVATE_KEY`), `SF_AUDIENCE`
+- `server.key` and `server.crt` are gitignored — generate locally, upload cert to the Connected App
+- Per-user token cache in memory; tokens live ~58 min (JWT exp = 5 min, but access token lasts ~1 hr)
+- `extractText()` in server.js flattens copilot action output payloads (briefings, confessionals) so the full response reaches the UI
+- If any `SF_*` var is missing, `/coach` shows a lock screen — Salesforce-native chat remains the fallback
 
 ## Salesforce / Agentforce Notes
 

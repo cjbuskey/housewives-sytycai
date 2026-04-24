@@ -105,6 +105,41 @@ npm run lint          # ESLint
 npm run format        # Prettier --write
 ```
 
+## Coach Room (Headless Agentforce)
+
+A third page at <http://localhost:3000/coach> that embeds the Agentforce Reunion Prep Coach directly in the Bravo UI — no Salesforce Lightning shell needed.
+
+The Coach Room uses the **JWT Bearer** OAuth flow to open agent sessions as a real Salesforce user. This is required for the `AgentforceEmployeeAgent` type (client_credentials can't open sessions against it).
+
+**One-time setup:**
+
+1. Generate an RSA key pair:
+   ```bash
+   openssl genrsa -out server.key 2048
+   openssl req -new -x509 -key server.key -out server.crt -days 365
+   ```
+2. In your Salesforce org, create a **Connected App** with:
+   - OAuth scopes: `api`, `refresh_token`, `einstein_genie_api` (Agentforce)
+   - Enable **Use Digital Signature** and upload `server.crt`
+   - Enable **JWT Bearer** and pre-authorise the user you'll run sessions as
+3. Set these in your `.env` (see `.env.example` for full comments):
+   ```
+   SF_INSTANCE_URL=https://yourorg.my.salesforce.com
+   SF_CLIENT_ID=<Connected App consumer key>
+   SF_AGENT_ID=<18-char Agentforce agent id>
+   SF_DEFAULT_USERNAME=<salesforce username>
+   SF_PRIVATE_KEY_PATH=server.key   # gitignored — never commit
+   ```
+4. Restart `npm start`
+
+If any `SF_*` var is missing, `/coach` shows a lock screen rather than a broken chat, and the Salesforce-native chat UI remains available as a fallback.
+
+**How it works:**
+
+- `GET /api/agent/config` — tells the frontend whether the Coach Room is configured
+- `POST /api/agent/session` — opens an Agentforce session, returns `sessionId` + opening greeting
+- `POST /api/agent/ask` — sends a user message, returns the agent's reply; opens a new session automatically if `sessionId` is absent
+
 ## Project Steps
 
 See [plans/project-plan.md](plans/project-plan.md) for the full plan.

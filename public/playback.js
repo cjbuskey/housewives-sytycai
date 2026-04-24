@@ -198,7 +198,7 @@ playBtn.addEventListener('click', async () => {
     const res = await fetch('/api/speak', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: item.confessional }),
+      body: JSON.stringify({ text: item.confessional, gender: item.gender || 'female' }),
     });
 
     if (!res.ok) {

@@ -215,33 +215,35 @@ After the Agentforce chat demo ends ("Brief me on Meredith…"), click over to t
           Agentforce REST API → response text back
 ```
 
+**Auth note:** `AgentforceEmployeeAgent` (Internal Copilot) requires a real user context — the `client_credentials` flow cannot open sessions against it. The implementation uses **JWT Bearer**, which signs an assertion with an RSA private key and exchanges it for a user-scoped access token.
+
 **Salesforce side (one-time setup):**
 
-- [ ] Create a Connected App with Agentforce API scope
-- [ ] Pick auth flow — either **client_credentials** (simple, server-side) or **JWT bearer** (more secure, cert-based)
-- [ ] Capture `SF_INSTANCE_URL`, `SF_CLIENT_ID`, `SF_CLIENT_SECRET` (or JWT key), `SF_AGENT_ID`
-- [ ] Confirm the Reunion Prep Coach agent is exposed to the connected user
+- [x] Create a Connected App with Agentforce API scope (`einstein_genie_api`)
+- [x] Enable **Use Digital Signature**, upload the self-signed `server.crt`
+- [x] Enable JWT Bearer and pre-authorise the user who will run sessions
+- [x] Capture `SF_INSTANCE_URL`, `SF_CLIENT_ID`, `SF_AGENT_ID`, `SF_DEFAULT_USERNAME`
 
 **Node app tasks:**
 
-- [ ] Add env vars above to `.env.example` and `.env`
-- [ ] Add `POST /api/agent/ask` route in `server.js`:
-  - Authenticate via OAuth2 token endpoint (`/services/oauth2/token`)
-  - Cache the access token until expiry (typically 2 hours)
-  - Open/resume an agent session via the Agentforce REST API
-  - Send the user message and return the response text (plus `session_id` so the frontend can continue the conversation)
-- [ ] Create `public/coach.html` — chat layout with message list + input field in the Bravo aesthetic
-- [ ] Create `public/coach.js` — fetch-based chat, stores `sessionId` in memory, appends assistant bubbles as they arrive
-- [ ] Wire up navigation — add a link from `index.html` and `playback.html` to `/coach`
-- [ ] Add suggested-prompt chips at the bottom of the chat ("Brief me on Meredith", "Who's feuding this season?", "Write Heather's confessional") for easy demo navigation
+- [x] Add `jsonwebtoken` npm dependency
+- [x] Add env vars to `.env.example` and `.env` (`SF_PRIVATE_KEY_PATH`, `SF_PRIVATE_KEY`, `SF_AUDIENCE`, `SF_DEFAULT_USERNAME`)
+- [x] Add `GET /coach` route in `server.js`
+- [x] Add `GET /api/agent/config` — reports configured/unconfigured + `defaultUsername`
+- [x] Add `POST /api/agent/session` — opens a new session, returns `sessionId` + opening greeting
+- [x] Add `POST /api/agent/ask` — sends a message; auto-opens session if `sessionId` absent
+- [x] Per-user token cache with JWT assertion refresh
+- [x] `extractText()` flattens copilot action output payloads (briefings, confessionals) into the reply
+- [x] Create `public/coach.html` — Bravo-branded chat layout with suggested-prompt chips
+- [x] Create `public/coach.js` — eager session open on page load so producer greets on arrival
+- [x] Wire `/coach` links into `index.html` and `playback.html`
+- [x] Gitignore `server.key` and `server.crt`
 
 **Demo flow implication:**
 
-With the Coach Room wired up, the 3-tab demo collapses to a single browser tab — `localhost:3000` with three linked pages (`/`, `/coach`, `/playback`). Salesforce Contact records can still be shown briefly from the Salesforce org to prove the data pipeline is real, but the agent experience itself lives entirely in the Bravo-branded UI.
+The 3-tab demo collapses to a single browser tab — `localhost:3000` with three linked pages (`/`, `/coach`, `/playback`). Salesforce Contact records can still be shown briefly from the Salesforce org to prove the data pipeline is real, but the agent experience lives entirely in the Bravo-branded UI.
 
-**Effort estimate:** ~1 day. Half for Connected App + auth + token caching (the fiddly part), half for chat UI and suggested-prompt polish.
-
-**Fallback safety:** Even if the Coach Room is built, keep the Salesforce-native chat UI working as a backup. If something flakes live, you can tab-swap to the native Agentforce chat without losing the demo.
+**Fallback safety:** If any `SF_*` var is missing, `/coach` shows a lock screen rather than a broken chat. The Salesforce-native chat UI remains available as a tab-swap fallback during the demo.
 
 ### Sample Prompts to Demo
 

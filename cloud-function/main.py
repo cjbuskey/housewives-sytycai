@@ -70,6 +70,11 @@ DRAMA_PROFILE_TOOL = {
                     "type": "object",
                     "properties": {
                         "housewife_name": {"type": "string"},
+                        "gender": {
+                            "type": "string",
+                            "enum": ["female", "male"],
+                            "description": "Gender of the cast member. Most are female; use 'male' for husbands, Andys, or male recurring cast.",
+                        },
                         "drama_score": {
                             "type": "integer",
                             "minimum": 0,
