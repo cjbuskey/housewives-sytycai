@@ -220,6 +220,7 @@ app.get('/api/housewives', async (_req, res) => {
                 season: source.season ?? null,
                 episode_title: source.episode_title || null,
                 housewife: p.housewife_name,
+                gender: p.gender || 'female',
                 drama_score: p.drama_score ?? null,
                 confessional: p.confessional_draft,
                 source_file: file.name,
@@ -239,9 +240,13 @@ app.get('/api/housewives', async (_req, res) => {
   }
 });
 
+// In-memory TTS cache: hash(voiceId + text) -> Buffer
+// Keyed by content so voice changes (env var edits) naturally miss.
+const ttsCache = new Map();
+
 // Proxies text to ElevenLabs TTS and streams the MP3 back to the browser.
 app.post('/api/speak', async (req, res) => {
-  const { text } = req.body;
+  const { text, gender } = req.body;
   if (!text || typeof text !== 'string') {
     return res.status(400).json({ error: 'text is required' });
   }
@@ -250,7 +255,22 @@ app.post('/api/speak', async (req, res) => {
   if (!apiKey) {
     return res.status(500).json({ error: 'ELEVENLABS_API_KEY is not set.' });
   }
-  const voiceId = process.env.ELEVENLABS_VOICE_ID || 'XrExE9yKIg1WjnnlVkGX'; // Matilda
+
+  const isMale = gender === 'male';
+  const voiceId = isMale
+    ? process.env.ELEVENLABS_MALE_VOICE_ID || 'q3pCVYOxlOb5G3l2O13o' // Min Diesel
+    : process.env.ELEVENLABS_VOICE_ID || 'VCUa8W1mPO0QcgrSewvs'; // Carolina
+
+  const cacheKey = crypto
+    .createHash('sha256')
+    .update(voiceId + text)
+    .digest('hex');
+  const cached = ttsCache.get(cacheKey);
+  if (cached) {
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Content-Length', cached.length);
+    return res.send(cached);
+  }
 
   try {
     const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
@@ -281,6 +301,7 @@ app.post('/api/speak', async (req, res) => {
     }
 
     const buf = Buffer.from(await r.arrayBuffer());
+    ttsCache.set(cacheKey, buf);
     res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader('Content-Length', buf.length);
     res.send(buf);
@@ -480,9 +501,7 @@ app.post('/api/agent/session', async (req, res) => {
   try {
     const user = (req.body && req.body.username) || env.defaultUsername;
     if (!user) {
-      return res
-        .status(400)
-        .json({ error: 'username is required (or set SF_DEFAULT_USERNAME).' });
+      return res.status(400).json({ error: 'username is required (or set SF_DEFAULT_USERNAME).' });
     }
     const session = await openAgentSession(user);
     res.json({

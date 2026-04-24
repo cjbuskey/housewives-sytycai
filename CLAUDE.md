@@ -2,63 +2,60 @@
 
 ## Project Overview
 
-Multi-agent AI pipeline for the "So You Think You Can AI" (SYTYCAI) contest. Ingests Real Housewives reunion transcripts, enriches them with Claude drama analysis, harmonizes in Salesforce Data Cloud, and surfaces through an Agentforce chatbot + an ElevenLabs audio playback page.
+Multi-agent AI pipeline for the SYTYCAI contest. Ingests Real Housewives reunion transcripts, enriches with Claude drama analysis, harmonizes in Salesforce Data Cloud, and surfaces through a headless Agentforce chatbot + an ElevenLabs audio playback page.
 
 ## Repository Structure
 
 ```
 housewives-sytycai/
-├── server.js                 # Express app (ingestion + /playback API)
-├── public/                   # Frontend (index.html, playback.html, style.css, app.js, playback.js)
-├── cloud-function/           # Python enrichment Cloud Function (main.py + deploy docs)
-├── plans/project-plan.md     # Full implementation plan + demo flow
-├── .github/workflows/ci.yml  # Lint + format check on push/PR
-├── README.md                 # Setup + run instructions
-└── CLAUDE.md                 # This file
+├── server.js           # Express app (ingestion, /coach, /playback APIs)
+├── public/             # index.html, coach.html, playback.html, style.css, *.js
+├── cloud-function/     # Python enrichment Cloud Function (main.py + deploy docs)
+├── plans/project-plan.md
+├── README.md
+└── CLAUDE.md
 ```
 
 ## Key Design Decisions
 
-- **Bravo Producer Persona**: Agentforce agent must feel theatrical, not corporate. Deliberate contest differentiator.
-- **Event-Driven Enrichment**: Cloud Function triggers on `object.finalize` in the raw bucket (`sytycai-video-transcripts`), writes output to a separate enriched bucket (`sytycai-video-transcripts-enriched`). Two buckets prevent the function from re-triggering on its own output.
-- **Local-Only Ingestion**: The Node ingestion app runs on localhost, not a deployed host — YouTube blocks cloud-provider IPs. Hosted pipeline starts at GCS.
-- **Data Cloud as Source of Truth**: Housewife profiles live as Salesforce Contact records, enriched via Data Cloud harmonization.
-- **ElevenLabs Playback Room**: Separate `/playback` page in the Node app (not in Agentforce chat). Reads confessionals aloud — the demo's audio payoff moment.
+- **Bravo Producer Persona** — theatrical, not corporate. Deliberate contest differentiator.
+- **Event-Driven Enrichment** — Cloud Function triggers on `object.finalize` in the raw bucket, writes to enriched bucket. Two buckets prevent re-trigger loops.
+- **Local-Only Ingestion** — YouTube blocks cloud IPs; the Node app runs on localhost. The hosted pipeline starts at GCS.
+- **Data Cloud as Source of Truth** — Housewife profiles live as Salesforce Contact records via Data Cloud harmonization.
 
-## Development Phases
+## GCP Cloud Function
 
-| Phase  | Goal                                                                    |
-| ------ | ----------------------------------------------------------------------- |
-| Step 1 | Local Node.js ingestion app → YouTube transcript → GCP Storage          |
-| Step 2 | GCP Cloud Function (event-driven) → Claude enrichment → enriched bucket |
-| Step 3 | Data Cloud ingestion + Contact harmonization                            |
-| Step 4 | Agentforce Reunion Prep Coach + ElevenLabs Playback Room                |
-
-## GCP Cloud Function Notes
-
-- Runtime: Python 3.12, 2nd-gen function, deployed to `us-east1`
+- Runtime: Python 3.12, 2nd-gen, `us-east1`
 - Trigger: `google.cloud.storage.object.v1.finalized` on `sytycai-video-transcripts`
-- Anthropic API key stored in Secret Manager (`anthropic-api-key`), mounted as `ANTHROPIC_API_KEY` env var
-- Full deploy command in [cloud-function/README.md](cloud-function/README.md)
+- `ANTHROPIC_API_KEY` sourced from Secret Manager in prod; `.env` locally
+- Deploy command in [cloud-function/README.md](cloud-function/README.md)
 
-## Claude API Usage Notes
+## Claude API
 
-- Model: `claude-sonnet-4-6` (long transcripts, cost/quality balance)
-- Prompt caching enabled on the system prompt (constant across invocations)
-- Structured output via tool-use (`save_drama_profiles`), guaranteed JSON
-- Output schema per Housewife: `housewife_name`, `drama_score` (0-100), `feuds`, `key_moments`, `talking_points`, `confessional_draft`
-- Canonical name rule: `housewife_name` must exactly match an entry in the Cast list when provided (no abbreviations, no misspellings)
+- Model: `claude-sonnet-4-6`, prompt caching on system prompt
+- Structured output via tool-use (`save_drama_profiles`)
+- Schema per cast member: `housewife_name`, `gender`, `drama_score` (0–100), `feuds`, `key_moments`, `talking_points`, `confessional_draft`
+- Canonical-name rule: `housewife_name` must exactly match the provided Cast list
 
-## ElevenLabs Playback Room Notes
+## Playback Room (`/playback`)
 
-- Lives in the same Node app at `/playback`
-- `GET /api/housewives` reads the enriched bucket, returns a flat list grouped by Housewife in the UI
-- `POST /api/speak` proxies text to ElevenLabs TTS, streams MP3 back to the browser
-- Env vars: `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`
+- `GET /api/housewives` reads enriched bucket → flat list with `gender` field
+- `POST /api/speak` accepts `{text, gender}` → routes to female (Carolina) or male (Min Diesel) ElevenLabs voice → streams MP3
+- Server-side TTS cache: `sha256(voiceId + text)` → Buffer (survives page refresh, doesn't re-charge credits)
+- Client-side audio cache: item index → blob URL (repeat plays are instant, no network hit)
+- Env vars: `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID` (Carolina default), `ELEVENLABS_MALE_VOICE_ID` (Min Diesel default)
 
-## Salesforce / Agentforce Notes
+## Coach Room (`/coach`)
 
-- One Contact record per Housewife (show names)
-- Custom fields on Contact: `Drama_Score__c`, `Key_Feuds__c`, `AI_Talking_Points__c`, `Season__c`, `Confessional_Draft__c`
-- Agent topic: "Reunion Prep Coach"
-- Persona: seasoned Bravo producer — theatrical, knowing, slightly conspiratorial
+- Headless Agentforce — Bravo-branded chat, no Salesforce Lightning shell
+- **JWT Bearer** flow required — `AgentforceEmployeeAgent` type can't use `client_credentials`
+- `npm` dep: `jsonwebtoken`
+- `server.key` / `server.crt` are gitignored; cert uploaded to Connected App
+- Per-user token cache in memory; `extractText()` flattens copilot action payloads into the reply
+- Falls back to a lock screen if any `SF_*` env var is missing
+- Env vars: `SF_INSTANCE_URL`, `SF_CLIENT_ID`, `SF_AGENT_ID`, `SF_DEFAULT_USERNAME`, `SF_PRIVATE_KEY_PATH` (or `SF_PRIVATE_KEY`), `SF_AUDIENCE`
+
+## Salesforce / Agentforce
+
+- One Contact per cast member; custom fields: `Drama_Score__c`, `Key_Feuds__c`, `AI_Talking_Points__c`, `Season__c`, `Confessional_Draft__c`
+- Agent topic: "Reunion Prep Coach" — seasoned Bravo producer persona
