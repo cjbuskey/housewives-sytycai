@@ -6,4 +6,8 @@ node_modules/
 service-account*.json
 !service-account.example.json
 
+# JWT signing keys for Salesforce — never commit
+server.key
+server.crt
+
 .DS_Store

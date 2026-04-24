@@ -60,8 +60,10 @@ async function ask(text) {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || `Server responded ${res.status}`);
 
+    const hadSession = Boolean(sessionId);
     sessionId = data.sessionId || sessionId;
-    if (data.greeting) appendBubble('agent', data.greeting);
+    // Only show the greeting if init() didn't already open the session for us.
+    if (data.greeting && !hadSession) appendBubble('agent', data.greeting);
     appendBubble('agent', data.reply || '…');
   } catch (err) {
     showError(err.message);
@@ -88,14 +90,30 @@ chips.addEventListener('click', (e) => {
 
 async function init() {
   try {
-    const res = await fetch('/api/agent/config');
-    const data = await res.json();
-    if (!data.configured) {
+    const cfgRes = await fetch('/api/agent/config');
+    const cfg = await cfgRes.json();
+    if (!cfg.configured) {
       unconfiguredCard.classList.remove('hidden');
       return;
     }
     coachCard.classList.remove('hidden');
     chatInput.focus();
+
+    // Eagerly open a session so the producer greets you as soon as the page loads.
+    try {
+      const sessionRes = await fetch('/api/agent/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const data = await sessionRes.json();
+      if (sessionRes.ok) {
+        sessionId = data.sessionId || null;
+        if (data.greeting) appendBubble('agent', data.greeting);
+      }
+    } catch {
+      // Non-fatal: user can still start by sending a message.
+    }
   } catch {
     unconfiguredCard.classList.remove('hidden');
   }
