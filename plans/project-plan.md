@@ -27,8 +27,6 @@ GCS: sytycai-video-transcripts-enriched/  ← Data Cloud watches this bucket
 Data Cloud data stream → Contact harmonization → Agentforce
 ```
 
-> **Why two buckets?** If enriched files land in the same bucket as raw files, the Cloud Function would re-trigger on its own output. Separate buckets eliminate that loop with no filtering logic needed.
-
 ---
 
 ## Step 1 — Transcript Ingestion (Local Node.js + GCP)
@@ -77,32 +75,17 @@ Data Cloud data stream → Contact harmonization → Agentforce
 - [x] Call Claude with the transcript as user message (system prompt cached)
 - [x] Parse and validate the JSON response
 - [x] Upload enriched output to `sytycai-video-transcripts-enriched/` as `{original-filename}-enriched.json`
-- [] Log success/failure to Cloud Logging
+- [x] Log success/failure to Cloud Logging
 
-### Claude Enrichment Prompt (system)
+### Claude Enrichment
 
-```
-You are a drama analyst for Bravo TV. Given a Real Housewives reunion transcript,
-extract a structured drama profile for each Housewife mentioned. Be specific,
-cite moments from the transcript, and score drama objectively.
+Actual prompt, tool schema, and logic live in [cloud-function/main.py](../cloud-function/main.py). Summary:
 
-Output valid JSON only. Schema:
-[
-  {
-    "housewife_name": "string",
-    "drama_score": 0-100,
-    "feuds": ["name: description"],
-    "key_moments": ["quote or scene description"],
-    "talking_points": ["point 1", "point 2"],
-    "confessional_draft": "string — what she should say in her next talking-head"
-  }
-]
-```
-
-### Model
-
-- Use `claude-sonnet-4-6` for cost/quality balance on long transcripts
-- Enable prompt caching on the system prompt — transcripts are long and the system prompt is constant
+- Model: `claude-sonnet-4-6`, prompt caching enabled on the system prompt
+- Structured output via tool use (`save_drama_profiles`) — guarantees valid JSON
+- Output schema per Housewife: `housewife_name`, `drama_score` (0-100), `feuds`, `key_moments`, `talking_points`, `confessional_draft`
+- Canonical-name rule: `housewife_name` must exactly match the `cast` list from the user message
+- Grounding fields threaded through from the ingestion form: `show`, `season`, `episode_title`, `cast`, `notes`, `speaker_hints`
 
 ---
 
@@ -122,11 +105,11 @@ Output valid JSON only. Schema:
 
 ### Data Cloud Tasks
 
-- [ ] Create a Data Cloud data stream pointed at the `sytycai-video-transcripts-enriched` GCS bucket
-- [ ] Map enrichment fields to Contact custom fields
-- [ ] Set up identity resolution (match on `housewife_name`)
-- [ ] Run harmonization to produce unified Housewife profiles
-- [ ] Verify Contact records are populated via Salesforce UI
+- [x] Create a Data Cloud data stream pointed at the `sytycai-video-transcripts-enriched` GCS bucket
+- [x] Map enrichment fields to Contact custom fields
+- [x] Set up identity resolution (match on `housewife_name`)
+- [x] Run harmonization to produce unified Housewife profiles
+- [x] Verify Contact records are populated via Salesforce UI
 
 ---
 
@@ -197,13 +180,68 @@ After the Agentforce chat demo ends ("Brief me on Meredith…"), click over to t
 
 **Cost/quota notes:**
 
-- ElevenLabs free tier: 10,000 characters/month. A single confessional is ~300 chars → ~33 plays per month before hitting the cap.
 - Recommend caching generated audio by confessional text hash so the demo doesn't regenerate on every button press.
 
 **Use for (out of scope for initial build, keep in mind):**
 
 - Re-narration of `key_moments` in addition to confessionals
 - Audio intro/outro for the reunion briefing ("Tonight on the reunion…")
+
+### Headless Agentforce — "Coach Room" (Optional Enhancement)
+
+**Goal:** Skip the Salesforce-hosted chat UI entirely and embed the Agentforce agent behind a third page in the local Node app (`/coach`), styled in the Bravo aesthetic. The demo collapses from 3 tabs to 1, judges never see a Salesforce Lightning shell, and the entire experience feels like one polished product.
+
+**Why consider it:**
+
+- **Unified demo surface** — ingestion, coach, and playback all live at `localhost:3000/*`. One URL, one polished look.
+- **On-brand chat UI** — hot pink + gold + serif aesthetic for the chat, not the corporate Salesforce Lightning chrome.
+- **No org access needed at presentation time** — judges don't need to be logged into Salesforce to see the agent.
+- **Reusable infra** — same pattern works for embedding agents in any product UI down the road.
+
+**Why you might skip it:**
+
+- More moving parts = more demo risk. The Salesforce-hosted chat UI is already working and battle-tested.
+- Requires a Connected App + OAuth setup in the Salesforce org, which adds admin overhead.
+- You lose the "wow, it's really in Agentforce" moment judges might appreciate seeing natively.
+
+**Architecture:**
+
+```
+/coach page (Node app)
+   │
+   ├── Chat UI (Bravo-themed, same style tokens as /playback)
+   │
+   └── POST /api/agent/ask → Salesforce Connected App auth →
+          Agentforce REST API → response text back
+```
+
+**Salesforce side (one-time setup):**
+
+- [ ] Create a Connected App with Agentforce API scope
+- [ ] Pick auth flow — either **client_credentials** (simple, server-side) or **JWT bearer** (more secure, cert-based)
+- [ ] Capture `SF_INSTANCE_URL`, `SF_CLIENT_ID`, `SF_CLIENT_SECRET` (or JWT key), `SF_AGENT_ID`
+- [ ] Confirm the Reunion Prep Coach agent is exposed to the connected user
+
+**Node app tasks:**
+
+- [ ] Add env vars above to `.env.example` and `.env`
+- [ ] Add `POST /api/agent/ask` route in `server.js`:
+  - Authenticate via OAuth2 token endpoint (`/services/oauth2/token`)
+  - Cache the access token until expiry (typically 2 hours)
+  - Open/resume an agent session via the Agentforce REST API
+  - Send the user message and return the response text (plus `session_id` so the frontend can continue the conversation)
+- [ ] Create `public/coach.html` — chat layout with message list + input field in the Bravo aesthetic
+- [ ] Create `public/coach.js` — fetch-based chat, stores `sessionId` in memory, appends assistant bubbles as they arrive
+- [ ] Wire up navigation — add a link from `index.html` and `playback.html` to `/coach`
+- [ ] Add suggested-prompt chips at the bottom of the chat ("Brief me on Meredith", "Who's feuding this season?", "Write Heather's confessional") for easy demo navigation
+
+**Demo flow implication:**
+
+With the Coach Room wired up, the 3-tab demo collapses to a single browser tab — `localhost:3000` with three linked pages (`/`, `/coach`, `/playback`). Salesforce Contact records can still be shown briefly from the Salesforce org to prove the data pipeline is real, but the agent experience itself lives entirely in the Bravo-branded UI.
+
+**Effort estimate:** ~1 day. Half for Connected App + auth + token caching (the fiddly part), half for chat UI and suggested-prompt polish.
+
+**Fallback safety:** Even if the Coach Room is built, keep the Salesforce-native chat UI working as a backup. If something flakes live, you can tab-swap to the native Agentforce chat without losing the demo.
 
 ### Sample Prompts to Demo
 
@@ -237,27 +275,3 @@ Run with **three browser tabs** staged and ready:
 8. **Tab C (Playback Room)** — the audio payoff. Pick Meredith → hit ▶ PLAY → her confessional reads aloud in Carolina's voice. Drop the mic.
 
 **Talking point for judges:** "We took Data Cloud + Agentforce and made them do something completely unexpected — and completely unforgettable."
-
----
-
-## Timeline Estimate
-
-| Phase                                       | Effort    |
-| ------------------------------------------- | --------- |
-| Step 1 (Local app + GCP)                    | 1-2 days  |
-| Step 2 (Cloud Function + Claude enrichment) | 1-2 days  |
-| Step 3 (Data Cloud + Contacts)              | 2-3 days  |
-| Step 4 (Agentforce agent)                   | 2-3 days  |
-| ElevenLabs bonus                            | 0.5-1 day |
-| Demo polish                                 | 0.5 day   |
-
----
-
-## Open Questions / Decisions Needed
-
-- [x] Which franchise(es) to use? (RHOBH is a strong choice — high drama, lots of reunion content)
-- [x] Which YouTube episodes/reunions to ingest for the demo?
-- [x] Who owns the Data Cloud / Agentforce org setup?
-- [x] Which GCP project/region to deploy into?
-- [x] Who owns GCP credentials and Secret Manager setup?
-- [x] ElevenLabs voice selection — which voice fits a Bravo narrator?

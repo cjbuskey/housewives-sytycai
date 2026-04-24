@@ -2,25 +2,28 @@
 
 ## Project Overview
 
-A multi-agent AI pipeline for the "So You Think You Can AI" (SYTYCAI) contest at Salesforce. Ingests Real Housewives reunion transcripts, enriches them with Claude-powered drama arc analysis, harmonizes the data in Salesforce Data Cloud, and surfaces it through an Agentforce chatbot with a Bravo-producer persona.
+Multi-agent AI pipeline for the "So You Think You Can AI" (SYTYCAI) contest. Ingests Real Housewives reunion transcripts, enriches them with Claude drama analysis, harmonizes in Salesforce Data Cloud, and surfaces through an Agentforce chatbot + an ElevenLabs audio playback page.
 
 ## Repository Structure
 
 ```
 housewives-sytycai/
-├── plans/                  # Implementation plans and design docs
-│   └── project-plan.md     # Full step-by-step project plan
-├── README.md               # Project overview and architecture
-└── CLAUDE.md               # This file
+├── server.js                 # Express app (ingestion + /playback API)
+├── public/                   # Frontend (index.html, playback.html, style.css, app.js, playback.js)
+├── cloud-function/           # Python enrichment Cloud Function (main.py + deploy docs)
+├── plans/project-plan.md     # Full implementation plan + demo flow
+├── .github/workflows/ci.yml  # Lint + format check on push/PR
+├── README.md                 # Setup + run instructions
+└── CLAUDE.md                 # This file
 ```
 
 ## Key Design Decisions
 
-- **Bravo Producer Persona**: The Agentforce agent must feel theatrical, not corporate. Responses should be dramatic, witty, and producer-voiced. This is a deliberate creative choice for contest differentiation.
-- **Event-Driven Enrichment**: A GCP Cloud Function triggers on `object.finalize` in the raw transcripts bucket (`sytycai-video-transcripts`), calls Claude, and writes output to a separate enriched bucket (`sytycai-video-transcripts-enriched`). Two buckets are required — one bucket would cause the function to re-trigger on its own output.
-- **Claude for Enrichment**: Claude performs sentiment analysis and drama arc mapping on raw transcripts. Output schema should be structured JSON (drama score, feuds, key moments, talking points) for reliable Data Cloud ingestion.
-- **Data Cloud as Source of Truth**: All Housewife profiles live as Salesforce Contact records enriched via Data Cloud harmonization — not in a bespoke database.
-- **ElevenLabs for Voice**: Re-narration of key moments, and optionally the Confessional Generator output. Keep this as a bonus/polish feature, not a dependency for the core demo.
+- **Bravo Producer Persona**: Agentforce agent must feel theatrical, not corporate. Deliberate contest differentiator.
+- **Event-Driven Enrichment**: Cloud Function triggers on `object.finalize` in the raw bucket (`sytycai-video-transcripts`), writes output to a separate enriched bucket (`sytycai-video-transcripts-enriched`). Two buckets prevent the function from re-triggering on its own output.
+- **Local-Only Ingestion**: The Node ingestion app runs on localhost, not a deployed host — YouTube blocks cloud-provider IPs. Hosted pipeline starts at GCS.
+- **Data Cloud as Source of Truth**: Housewife profiles live as Salesforce Contact records, enriched via Data Cloud harmonization.
+- **ElevenLabs Playback Room**: Separate `/playback` page in the Node app (not in Agentforce chat). Reads confessionals aloud — the demo's audio payoff moment.
 
 ## Development Phases
 
@@ -29,25 +32,33 @@ housewives-sytycai/
 | Step 1 | Local Node.js ingestion app → YouTube transcript → GCP Storage          |
 | Step 2 | GCP Cloud Function (event-driven) → Claude enrichment → enriched bucket |
 | Step 3 | Data Cloud ingestion + Contact harmonization                            |
-| Step 4 | Agentforce agent + Confessional Generator                               |
+| Step 4 | Agentforce Reunion Prep Coach + ElevenLabs Playback Room                |
 
 ## GCP Cloud Function Notes
 
-- Runtime: Python 3.12 or Node.js 20 (2nd gen function)
-- Trigger: `google.cloud.storage.object.v1.finalized` on `sytycai-video-transcripts` bucket
-- IAM: function service account needs `storage.objects.get` on raw bucket, `storage.objects.create` on enriched bucket
-- Anthropic API key: store in GCP Secret Manager, mount as env var — never hardcode
-- Logging: use Cloud Logging for success/failure per file processed
+- Runtime: Python 3.12, 2nd-gen function, deployed to `us-east1`
+- Trigger: `google.cloud.storage.object.v1.finalized` on `sytycai-video-transcripts`
+- Anthropic API key stored in Secret Manager (`anthropic-api-key`), mounted as `ANTHROPIC_API_KEY` env var
+- Full deploy command in [cloud-function/README.md](cloud-function/README.md)
 
 ## Claude API Usage Notes
 
-- Use `claude-sonnet-4-6` for transcript enrichment (cost/quality balance for potentially long transcripts)
-- Enable prompt caching on the system prompt — it's constant across all invocations and transcripts are long
-- Output format for enrichment: structured JSON with fields: `housewife_name`, `drama_score` (0-100), `feuds` (array), `key_moments` (array), `talking_points` (array), `confessional_draft` (string)
+- Model: `claude-sonnet-4-6` (long transcripts, cost/quality balance)
+- Prompt caching enabled on the system prompt (constant across invocations)
+- Structured output via tool-use (`save_drama_profiles`), guaranteed JSON
+- Output schema per Housewife: `housewife_name`, `drama_score` (0-100), `feuds`, `key_moments`, `talking_points`, `confessional_draft`
+- Canonical name rule: `housewife_name` must exactly match an entry in the Cast list when provided (no abbreviations, no misspellings)
+
+## ElevenLabs Playback Room Notes
+
+- Lives in the same Node app at `/playback`
+- `GET /api/housewives` reads the enriched bucket, returns a flat list grouped by Housewife in the UI
+- `POST /api/speak` proxies text to ElevenLabs TTS, streams MP3 back to the browser
+- Env vars: `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`
 
 ## Salesforce / Agentforce Notes
 
-- One Salesforce Contact record per Housewife (use fictional/show names)
-- Custom fields on Contact: `Drama_Score__c`, `Key_Feuds__c`, `AI_Talking_Points__c`, `Season__c`
-- Agentforce agent topic: "Reunion Prep Coach"
-- Agent persona instruction: speak like a seasoned Bravo producer — theatrical, knowing, slightly conspiratorial
+- One Contact record per Housewife (show names)
+- Custom fields on Contact: `Drama_Score__c`, `Key_Feuds__c`, `AI_Talking_Points__c`, `Season__c`, `Confessional_Draft__c`
+- Agent topic: "Reunion Prep Coach"
+- Persona: seasoned Bravo producer — theatrical, knowing, slightly conspiratorial
