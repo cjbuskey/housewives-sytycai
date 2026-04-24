@@ -198,3 +198,19 @@ Single browser tab: `http://localhost:3000` with three linked pages. Keep Salesf
 7. **`/playback`** — pick Meredith → hit ▶ → confessional reads aloud in Carolina's voice. Drop the mic.
 
 **Talking point:** "We took Data Cloud + Agentforce and made them do something completely unexpected — and completely unforgettable."
+
+---
+
+## Future / Post-Contest
+
+### Unit Testing
+
+Scope to pure logic functions only — no mocking of GCS, ElevenLabs, or Salesforce.
+
+**Node (Jest):** `extractVideoId`, `slugify`, `extractText` (Agentforce response flattener)
+
+**Browser (Jest + jsdom):** `abbreviateShow`, `itemMatchesFilter`, `rowLabel`
+
+**Python (pytest):** `build_user_message` (grounding field threading into Claude prompt)
+
+Skip route-level tests — they're thin wrappers around external services with low signal-to-setup ratio for a demo codebase.
