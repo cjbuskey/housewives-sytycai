@@ -287,6 +287,153 @@ app.post('/api/speak', async (req, res) => {
   }
 });
 
+// ─── COACH ROOM (HEADLESS AGENTFORCE) ─────────────────────────────────────────
+// Optional: if SF_* env vars are set, /coach talks to the Agentforce agent
+// directly via the Einstein Agent API. If anything is missing, /api/agent/config
+// reports unconfigured and the UI falls back to a link to the Salesforce-hosted
+// chat.
+
+const AGENT_API_BASE = 'https://api.salesforce.com/einstein/ai-agent/v1';
+
+function agentEnv() {
+  const { SF_INSTANCE_URL, SF_CLIENT_ID, SF_CLIENT_SECRET, SF_AGENT_ID } = process.env;
+  return {
+    instanceUrl: SF_INSTANCE_URL && SF_INSTANCE_URL.replace(/\/+$/, ''),
+    clientId: SF_CLIENT_ID,
+    clientSecret: SF_CLIENT_SECRET,
+    agentId: SF_AGENT_ID,
+    configured: Boolean(SF_INSTANCE_URL && SF_CLIENT_ID && SF_CLIENT_SECRET && SF_AGENT_ID),
+  };
+}
+
+let cachedToken = null; // { accessToken, instanceUrl, expiresAt }
+
+async function getAgentToken() {
+  if (cachedToken && cachedToken.expiresAt > Date.now() + 60_000) return cachedToken;
+
+  const { instanceUrl, clientId, clientSecret } = agentEnv();
+  const body = new URLSearchParams({
+    grant_type: 'client_credentials',
+    client_id: clientId,
+    client_secret: clientSecret,
+  });
+
+  const r = await fetch(`${instanceUrl}/services/oauth2/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
+  });
+
+  if (!r.ok) {
+    const text = await r.text();
+    throw new Error(`Salesforce token request failed (${r.status}): ${text}`);
+  }
+
+  const data = await r.json();
+  const ttlMs = (data.expires_in ? data.expires_in * 1000 : null) || 2 * 60 * 60 * 1000;
+  cachedToken = {
+    accessToken: data.access_token,
+    instanceUrl: data.instance_url || instanceUrl,
+    expiresAt: Date.now() + ttlMs,
+  };
+  return cachedToken;
+}
+
+async function openAgentSession(token, agentId) {
+  const r = await fetch(`${AGENT_API_BASE}/agents/${agentId}/sessions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token.accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      externalSessionKey: `coach-room-${Date.now()}`,
+      instanceConfig: { endpoint: token.instanceUrl },
+      streamingCapabilities: { chunkTypes: ['Text'] },
+    }),
+  });
+
+  if (!r.ok) {
+    const text = await r.text();
+    throw new Error(`Agent session open failed (${r.status}): ${text}`);
+  }
+  return r.json(); // { sessionId, messages: [...] }
+}
+
+async function sendAgentMessage(token, sessionId, text, sequenceId) {
+  const r = await fetch(`${AGENT_API_BASE}/sessions/${sessionId}/messages`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token.accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      message: { sequenceId, type: 'Text', text },
+    }),
+  });
+
+  if (!r.ok) {
+    const body = await r.text();
+    throw new Error(`Agent message failed (${r.status}): ${body}`);
+  }
+  return r.json(); // { messages: [{ message, type, ... }] }
+}
+
+function extractText(response) {
+  const msgs = response?.messages || [];
+  return msgs
+    .map((m) => m?.message || m?.text || '')
+    .filter(Boolean)
+    .join('\n\n');
+}
+
+app.get('/coach', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'coach.html'));
+});
+
+app.get('/api/agent/config', (_req, res) => {
+  res.json({ configured: agentEnv().configured });
+});
+
+app.post('/api/agent/ask', async (req, res) => {
+  const env = agentEnv();
+  if (!env.configured) {
+    return res.status(503).json({
+      error: 'Coach Room is not configured. Set SF_* env vars or use the Salesforce chat.',
+    });
+  }
+
+  const { text, sessionId } = req.body || {};
+  if (!text || typeof text !== 'string') {
+    return res.status(400).json({ error: 'text is required' });
+  }
+
+  try {
+    const token = await getAgentToken();
+
+    let sid = sessionId;
+    let greeting = '';
+
+    if (!sid) {
+      const session = await openAgentSession(token, env.agentId);
+      sid = session.sessionId;
+      greeting = extractText(session);
+    }
+
+    const reply = await sendAgentMessage(token, sid, text, Date.now());
+    const replyText = extractText(reply);
+
+    res.json({
+      sessionId: sid,
+      reply: replyText,
+      greeting: greeting || undefined,
+    });
+  } catch (err) {
+    console.error('Agent ask error:', err);
+    res.status(502).json({ error: err.message || 'Agent call failed.' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Reunion Ready is serving looks on port ${PORT} 💅`);
 });
