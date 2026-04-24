@@ -192,10 +192,10 @@ Single browser tab: `http://localhost:3000` with three linked pages. Keep Salesf
 1. **`/` (ingestion)** — paste a YouTube URL, submit. Show transcript landing in GCS. Note the Cloud Function auto-triggers. _(Demo data was pre-seeded; live scrape is for show.)_
 2. Show an enriched JSON briefly — drama scores, feuds, confessional drafts.
 3. **(Salesforce tab)** — Contact record with custom fields populated by Data Cloud harmonization.
-4. **`/coach`** — ask _"Brief me on Meredith before tonight"_ → Bravo-producer voice, drama score, feuds, talking points.
+4. **`/coach`** — ask _"Brief me on Sutton before tonight"_ → Bravo-producer voice, drama score, feuds, talking points.
 5. Ask _"Give me three comebacks if she mentions the shop"_ → Comeback Generator.
 6. Ask _"Who's feuding this season?"_ → Feud Map.
-7. **`/playback`** — pick Meredith → hit ▶ → confessional reads aloud in Carolina's voice. Drop the mic.
+7. **`/playback`** — pick Sutton → hit ▶ → confessional reads aloud in Carolina's voice. Drop the mic.
 
 **Talking point:** "We took Data Cloud + Agentforce and made them do something completely unexpected — and completely unforgettable."
 
