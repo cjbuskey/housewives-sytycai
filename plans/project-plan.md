@@ -145,105 +145,33 @@ The agent should feel like a seasoned Bravo producer — theatrical, knowing, sl
 - Trigger: "Write [Housewife]'s confessional" / "What should Erika say in her talking-head?"
 - Action: Return `Confessional_Draft__c` from Contact, optionally send to ElevenLabs for voice
 
-### ElevenLabs Integration — "Playback Room" (Bonus)
+### ElevenLabs Integration — "Playback Room"
 
-**Goal:** A dedicated page in the local Node.js app where you pick a Housewife, see her AI-generated confessional, and play it aloud in a dramatic voice. Closes the demo with a memorable audio "ta-da" moment.
-
-**Architecture:**
-
-```
-/playback page
-   │
-   ├── Dropdown populated from GET /api/housewives
-   │     (reads gs://sytycai-video-transcripts-enriched/)
-   │
-   ├── Shows confessional_draft text when a Housewife is picked
-   │
-   └── "Play" button → POST /api/speak → ElevenLabs API → MP3 streamed back
-```
+**Goal:** Pick a cast member, see their AI confessional, hit ▶ — confessional reads aloud. Demo's audio payoff moment.
 
 **Tasks:**
 
-- [x] Sign up at elevenlabs.io, grab API key (free tier = ~10k chars/mo, plenty for demo)
-- [x] Audition 3–4 voices for Bravo-narrator energy (Matilda, Charlotte, Charlie are worth trying); commit to one `voice_id`
-- [x] Add `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID` to `.env.example` and `.env`
-- [x] Add new Express route `GET /api/housewives` — reads enriched bucket, returns a grouped list: `[{show, season, housewives: [{name, confessional}]}]`
-- [x] Add new Express route `POST /api/speak` — takes `{text}`, calls ElevenLabs `/v1/text-to-speech/{voice_id}`, streams the MP3 response back to the browser
-- [x] Create `public/playback.html` — dropdown + confessional preview + play button, matching the existing Bravo aesthetic
-- [x] Create `public/playback.js` — fetch housewives list on load, wire up the play button to an `<audio>` element
-- [x] Add a navigation link from `index.html` to `/playback`
-- [ ] Optional polish: cache generated MP3s locally so repeat plays don't burn quota
+- [x] `GET /api/housewives` — reads enriched bucket, returns flat list with `gender` field
+- [x] `POST /api/speak` — accepts `{text, gender}`, routes to Carolina (female) or Min Diesel (male), streams MP3
+- [x] Server-side TTS cache: `sha256(voiceId + text)` → Buffer (repeat plays don't burn quota)
+- [x] Client-side audio cache: item index → blob URL (instant replay, no network hit)
+- [x] `public/playback.html` + `public/playback.js` — searchable list UI, Bravo aesthetic
+- [x] `gender` field added to Cloud Function schema; existing files bulk-patched in GCS
 
-**Demo payoff:**
+### Headless Agentforce — "Coach Room" ✅
 
-After the Agentforce chat demo ends ("Brief me on Meredith…"), click over to the Playback Room and let Meredith's AI-written confessional play in a dramatic voice. Hands-off theatrical moment — judges _hear_ the output instead of just reading it.
+**Goal:** Bravo-branded chat at `/coach` wired directly to the Agentforce agent — no Salesforce Lightning shell.
 
-**Cost/quota notes:**
+Uses **JWT Bearer** OAuth (`AgentforceEmployeeAgent` requires a real user context; `client_credentials` can't open sessions against it).
 
-- Recommend caching generated audio by confessional text hash so the demo doesn't regenerate on every button press.
+**Tasks (all done):**
 
-**Use for (out of scope for initial build, keep in mind):**
-
-- Re-narration of `key_moments` in addition to confessionals
-- Audio intro/outro for the reunion briefing ("Tonight on the reunion…")
-
-### Headless Agentforce — "Coach Room" (Optional Enhancement)
-
-**Goal:** Skip the Salesforce-hosted chat UI entirely and embed the Agentforce agent behind a third page in the local Node app (`/coach`), styled in the Bravo aesthetic. The demo collapses from 3 tabs to 1, judges never see a Salesforce Lightning shell, and the entire experience feels like one polished product.
-
-**Why consider it:**
-
-- **Unified demo surface** — ingestion, coach, and playback all live at `localhost:3000/*`. One URL, one polished look.
-- **On-brand chat UI** — hot pink + gold + serif aesthetic for the chat, not the corporate Salesforce Lightning chrome.
-- **No org access needed at presentation time** — judges don't need to be logged into Salesforce to see the agent.
-- **Reusable infra** — same pattern works for embedding agents in any product UI down the road.
-
-**Why you might skip it:**
-
-- More moving parts = more demo risk. The Salesforce-hosted chat UI is already working and battle-tested.
-- Requires a Connected App + OAuth setup in the Salesforce org, which adds admin overhead.
-- You lose the "wow, it's really in Agentforce" moment judges might appreciate seeing natively.
-
-**Architecture:**
-
-```
-/coach page (Node app)
-   │
-   ├── Chat UI (Bravo-themed, same style tokens as /playback)
-   │
-   └── POST /api/agent/ask → Salesforce Connected App auth →
-          Agentforce REST API → response text back
-```
-
-**Auth note:** `AgentforceEmployeeAgent` (Internal Copilot) requires a real user context — the `client_credentials` flow cannot open sessions against it. The implementation uses **JWT Bearer**, which signs an assertion with an RSA private key and exchanges it for a user-scoped access token.
-
-**Salesforce side (one-time setup):**
-
-- [x] Create a Connected App with Agentforce API scope (`einstein_genie_api`)
-- [x] Enable **Use Digital Signature**, upload the self-signed `server.crt`
-- [x] Enable JWT Bearer and pre-authorise the user who will run sessions
-- [x] Capture `SF_INSTANCE_URL`, `SF_CLIENT_ID`, `SF_AGENT_ID`, `SF_DEFAULT_USERNAME`
-
-**Node app tasks:**
-
-- [x] Add `jsonwebtoken` npm dependency
-- [x] Add env vars to `.env.example` and `.env` (`SF_PRIVATE_KEY_PATH`, `SF_PRIVATE_KEY`, `SF_AUDIENCE`, `SF_DEFAULT_USERNAME`)
-- [x] Add `GET /coach` route in `server.js`
-- [x] Add `GET /api/agent/config` — reports configured/unconfigured + `defaultUsername`
-- [x] Add `POST /api/agent/session` — opens a new session, returns `sessionId` + opening greeting
-- [x] Add `POST /api/agent/ask` — sends a message; auto-opens session if `sessionId` absent
-- [x] Per-user token cache with JWT assertion refresh
-- [x] `extractText()` flattens copilot action output payloads (briefings, confessionals) into the reply
-- [x] Create `public/coach.html` — Bravo-branded chat layout with suggested-prompt chips
-- [x] Create `public/coach.js` — eager session open on page load so producer greets on arrival
-- [x] Wire `/coach` links into `index.html` and `playback.html`
-- [x] Gitignore `server.key` and `server.crt`
-
-**Demo flow implication:**
-
-The 3-tab demo collapses to a single browser tab — `localhost:3000` with three linked pages (`/`, `/coach`, `/playback`). Salesforce Contact records can still be shown briefly from the Salesforce org to prove the data pipeline is real, but the agent experience lives entirely in the Bravo-branded UI.
-
-**Fallback safety:** If any `SF_*` var is missing, `/coach` shows a lock screen rather than a broken chat. The Salesforce-native chat UI remains available as a tab-swap fallback during the demo.
+- [x] Connected App with `einstein_genie_api` scope, Digital Signature cert, JWT Bearer enabled
+- [x] `jsonwebtoken` npm dep; `server.key`/`server.crt` gitignored
+- [x] `GET /api/agent/config`, `POST /api/agent/session`, `POST /api/agent/ask` in `server.js`
+- [x] Per-user token cache; `extractText()` flattens copilot action payloads
+- [x] `public/coach.html` + `public/coach.js` — suggested-prompt chips, eager session open on load
+- [x] Falls back to lock screen if `SF_*` vars missing; Salesforce-native chat remains fallback
 
 ### Sample Prompts to Demo
 
@@ -259,21 +187,14 @@ The 3-tab demo collapses to a single browser tab — `localhost:3000` with three
 
 ## Demo Flow (Contest Presentation)
 
-Run with **three browser tabs** staged and ready:
+Single browser tab: `http://localhost:3000` with three linked pages. Keep Salesforce org open in a second tab only to briefly show Contact records.
 
-- **Tab A:** Local ingestion app → `http://localhost:3000`
-- **Tab B:** Agentforce chat (in Salesforce org)
-- **Tab C:** Playback Room → `http://localhost:3000/playback`
+1. **`/` (ingestion)** — paste a YouTube URL, submit. Show transcript landing in GCS. Note the Cloud Function auto-triggers. _(Demo data was pre-seeded; live scrape is for show.)_
+2. Show an enriched JSON briefly — drama scores, feuds, confessional drafts.
+3. **(Salesforce tab)** — Contact record with custom fields populated by Data Cloud harmonization.
+4. **`/coach`** — ask _"Brief me on Meredith before tonight"_ → Bravo-producer voice, drama score, feuds, talking points.
+5. Ask _"Give me three comebacks if she mentions the shop"_ → Comeback Generator.
+6. Ask _"Who's feuding this season?"_ → Feud Map.
+7. **`/playback`** — pick Meredith → hit ▶ → confessional reads aloud in Carolina's voice. Drop the mic.
 
-**The flow:**
-
-1. **Tab A (ingestion)** — paste a YouTube reunion URL, submit. Show the transcript land in GCS. Mention the Cloud Function auto-triggers from here. _(This is the "see it work live" moment — actual demo data was pre-seeded to avoid YouTube blocking the live scrape.)_
-2. Briefly show the enriched JSON that the Cloud Function produced — drama scores, feuds, confessional drafts per Housewife.
-3. **(Salesforce)** show the Contact record for a Housewife with the custom fields populated by Data Cloud harmonization.
-4. **Tab B (Agentforce)** — ask _"Brief me on Meredith before tonight"_ → agent responds in Bravo-producer voice with her drama score, feuds, talking points.
-5. Ask _"Give me three comebacks if she mentions the shop"_ → Comeback Generator in action.
-6. Ask _"Who's feuding with who this season?"_ → Feud Map shows the drama web.
-7. Ask _"Write Meredith's confessional"_ → agent returns the AI-drafted talking-head script as text.
-8. **Tab C (Playback Room)** — the audio payoff. Pick Meredith → hit ▶ PLAY → her confessional reads aloud in Carolina's voice. Drop the mic.
-
-**Talking point for judges:** "We took Data Cloud + Agentforce and made them do something completely unexpected — and completely unforgettable."
+**Talking point:** "We took Data Cloud + Agentforce and made them do something completely unexpected — and completely unforgettable."
