@@ -1,6 +1,9 @@
 # Enrichment Cloud Function
 
-Triggered by `object.finalize` on `gs://sytycai-video-transcripts/`. Reads the raw transcript JSON, calls Claude Sonnet 4.6 to extract per-Housewife drama profiles, and writes the enriched JSON to `gs://sytycai-video-transcripts-enriched/`.
+Triggered by `object.finalize` on `gs://sytycai-video-transcripts/`. Reads the raw transcript JSON, calls Claude Sonnet 4.6 to extract per-Housewife drama profiles, and writes two outputs to `gs://sytycai-video-transcripts-enriched/`:
+
+- `{basename}-enriched.json` — the full enriched payload (source of truth)
+- `csv/{basename}.csv` — one row per Housewife, flat schema for Data Cloud ingestion
 
 ## Prerequisites
 
@@ -137,3 +140,37 @@ Each enriched file contains:
   "usage": { "input_tokens": 28141, "output_tokens": 1892, "cache_read_input_tokens": 423 }
 }
 ```
+
+## CSV Output (for Data Cloud)
+
+Data Cloud's GCS connector reads CSV natively but not nested JSON, so the function also writes a flattened CSV alongside the JSON. Point the Data Cloud data stream at the `csv/` prefix:
+
+```
+gs://sytycai-video-transcripts-enriched/csv/
+```
+
+**Row granularity:** one row per Housewife per reunion file.
+
+**Columns (in order):**
+
+| Column                  | Notes                                                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `profile_id`            | Composite primary key: `{housewife-slug}__{show-slug}__s{season}__{episode-slug}`. Stable across reruns.     |
+| `housewife_name`        | Canonical full name (matches DSR/identity-resolution key).                                                   |
+| `drama_score`           | Integer 0–100.                                                                                               |
+| `feuds`                 | Newline-joined list of `"Other Housewife: description"`.                                                     |
+| `key_moments`           | Newline-joined list.                                                                                         |
+| `talking_points`        | Newline-joined list.                                                                                         |
+| `confessional_draft`    | Full dramatic talking-head text.                                                                             |
+| `show`                  | Franchise name (e.g. `Real Housewives of New Jersey`).                                                       |
+| `season`                | Integer.                                                                                                     |
+| `franchise`             | Short form (e.g. `New Jersey`).                                                                              |
+| `episode_title`         | Reunion part, etc.                                                                                           |
+| `source_url`            | YouTube URL of the original source video.                                                                    |
+| `video_id`              | YouTube video ID.                                                                                            |
+| `raw_file`              | Source filename in `sytycai-video-transcripts`.                                                              |
+| `enriched_at`           | ISO-8601 UTC timestamp.                                                                                      |
+
+All fields are fully quoted (RFC 4180). Embedded commas, newlines, and double-quotes are handled correctly — Python's `csv` module does the escaping.
+
+**Identity resolution:** match on `housewife_name` (exact, normalized) in the Data Cloud ruleset so multiple reunion appearances of the same Housewife collapse to a single unified individual.

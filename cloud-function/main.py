@@ -7,10 +7,13 @@ and writes the enriched JSON to gs://sytycai-video-transcripts-enriched/.
 
 from __future__ import annotations
 
+import csv
 import datetime as dt
+import io
 import json
 import logging
 import os
+import re
 from typing import Any
 
 import functions_framework
@@ -206,6 +209,146 @@ def enrich_transcript(
     raise RuntimeError("Claude did not return a tool_use block")
 
 
+# ─── CSV OUTPUT ────────────────────────────────────────────────────────────
+CSV_COLUMNS = [
+    "profile_id",
+    "housewife_name",
+    "sf_id",
+    "drama_score",
+    "feuds",
+    "key_moments",
+    "talking_points",
+    "confessional_draft",
+    "show",
+    "season",
+    "franchise",
+    "episode_title",
+    "source_url",
+    "video_id",
+    "raw_file",
+    "enriched_at",
+]
+
+# Maps canonical housewife_name -> Salesforce Contact Id. Used as the match key
+# for Data Cloud identity resolution back onto Contact records.
+SF_ID_MAP = {
+    "Amanda Frances": "003Hs00007ZzLJrIAN",
+    "Angie Katsanevas": "003Hs00007ZzLJwIAN",
+    "Angie Kukk": "003Hs00007ZzLK1IAN",
+    "Bozoma St. John": "003Hs00007ZzLK6IAN",
+    "Britani Bateman": "003Hs00007ZzLKBIA3",
+    "Bronwyn Newport": "003Hs00007ZzLKGIA3",
+    "Camille Grammer": "003Hs00007ZzLKLIA3",
+    "Crystal Kung Minkoff": "003Hs00007ZzLKQIA3",
+    "Danielle Cabral": "003Hs00007ZzLKVIA3",
+    "Denise Richards": "003Hs00007ZzLKaIAN",
+    "Dolores Catania": "003Hs00007ZzLKfIAN",
+    "Dorit Kemsley": "003Hs00007ZzKsVIAV",
+    "Erika Jayne Girardi": "003Hs00007ZzLKkIAN",
+    "Garcelle Beauvais": "003Hs00007ZzKsQIAV",
+    "Heather Gay": "003Hs00007ZzLKpIAN",
+    "Jackie Goldschneider": "003Hs00007ZzLKuIAN",
+    "Jen Shah": "003Hs00007ZzLKzIAN",
+    "Jennifer Aydin": "003Hs00007ZzLL4IAN",
+    "Jennifer Fessler": "003Hs00007ZzLJsIAN",
+    "Jennifer Tilly": "003Hs00007ZzLL9IAN",
+    "Joe Gorga": "003Hs00007ZzLLEIA3",
+    "Kathy Hilton": "003Hs00007ZzKsgIAF",
+    "Kyle Richards": "003Hs00007ZzKskIAF",
+    "Lisa Barlow": "003Hs00007ZzLLJIA3",
+    "Lisa Rinna": "003Hs00007ZzLLOIA3",
+    "Lisa Vanderpump": "003Hs00007ZzLLTIA3",
+    "Louie Ruelas": "003Hs00007ZzLLYIA3",
+    "Margaret Josephs": "003Hs00007ZzLLdIAN",
+    "Mary Cosby": "003Hs00007ZzLLiIAN",
+    "Melissa Gorga": "003Hs00007ZzLLnIAN",
+    "Meredith Marks": "003Hs00007ZzLLsIAN",
+    "Monica Garcia": "003Hs00007ZzLLxIAN",
+    "Natalie Swanston Fuller": "003Hs00007ZzLM2IAN",
+    "Rachel Fuda": "003Hs00007ZzLM7IAN",
+    "Rachel Zoe": "003Hs00007ZzLMCIA3",
+    "Sutton Stracke": "003Hs00007ZzKsfIAF",
+    "Teddi Mellencamp Arroyave": "003Hs00007ZzLMHIA3",
+    "Teresa Giudice": "003Hs00007ZzLLtIAN",
+    "Whitney Rose": "003Hs00007ZzLMMIA3",
+}
+
+# Transcript-name variants that should resolve to a canonical SF_ID_MAP key.
+# Extend as you discover new misspellings / nicknames in enriched output.
+SF_NAME_ALIASES = {
+    "Erika Girardi": "Erika Jayne Girardi",
+    "Erika Jayne": "Erika Jayne Girardi",
+    "Mary Crosby": "Mary Cosby",
+}
+
+
+def lookup_sf_id(housewife_name: str) -> str:
+    """Resolve a housewife name (with alias fallback) to a Salesforce Contact Id."""
+    canonical = SF_NAME_ALIASES.get(housewife_name, housewife_name)
+    return SF_ID_MAP.get(canonical, "")
+
+
+def _slug(value: Any) -> str:
+    """Lowercase, alphanumeric-only slug for building profile_id."""
+    return re.sub(r"[^a-z0-9]+", "-", str(value or "").lower()).strip("-")
+
+
+def build_profile_id(
+    housewife_name: str,
+    show: str | None,
+    season: int | None,
+    episode_title: str | None,
+) -> str:
+    return "__".join(
+        [
+            _slug(housewife_name),
+            _slug(show),
+            f"s{season}" if season is not None else "s",
+            _slug(episode_title),
+        ]
+    )
+
+
+def render_csv(enriched: dict[str, Any]) -> str:
+    """Flatten enriched payload into one CSV row per housewife profile."""
+    source = enriched.get("source", {}) or {}
+    show = source.get("show")
+    season = source.get("season")
+    episode_title = source.get("episode_title")
+
+    buf = io.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=CSV_COLUMNS, quoting=csv.QUOTE_ALL)
+    writer.writeheader()
+    for profile in enriched.get("profiles", []):
+        housewife_name = profile.get("housewife_name", "")
+        writer.writerow(
+            {
+                "profile_id": build_profile_id(
+                    housewife_name,
+                    show,
+                    season,
+                    episode_title,
+                ),
+                "housewife_name": housewife_name,
+                "sf_id": lookup_sf_id(housewife_name),
+                "drama_score": profile.get("drama_score", ""),
+                "feuds": "\n".join(profile.get("feuds", []) or []),
+                "key_moments": "\n".join(profile.get("key_moments", []) or []),
+                "talking_points": "\n".join(profile.get("talking_points", []) or []),
+                "confessional_draft": profile.get("confessional_draft", ""),
+                "show": show or "",
+                "season": season if season is not None else "",
+                "franchise": enriched.get("franchise", ""),
+                "episode_title": episode_title or "",
+                "source_url": source.get("source_url", "") or "",
+                "video_id": source.get("video_id", "") or "",
+                "raw_file": source.get("raw_file", "") or "",
+                "enriched_at": enriched.get("enriched_at", ""),
+            }
+        )
+    return buf.getvalue()
+
+
 # ─── ENTRY POINT ───────────────────────────────────────────────────────────
 @functions_framework.cloud_event
 def on_transcript_finalized(cloud_event: CloudEvent) -> None:
@@ -263,17 +406,26 @@ def on_transcript_finalized(cloud_event: CloudEvent) -> None:
         "usage": enrichment["usage"],
     }
 
+    enriched_bucket = storage_client.bucket(ENRICHED_BUCKET)
+
     enriched_file_name = file_name.replace(".json", "-enriched.json")
-    enriched_blob = storage_client.bucket(ENRICHED_BUCKET).blob(enriched_file_name)
-    enriched_blob.upload_from_string(
+    enriched_bucket.blob(enriched_file_name).upload_from_string(
         json.dumps(enriched, indent=2),
         content_type="application/json",
     )
 
+    csv_file_name = f"csv/{file_name.replace('.json', '.csv')}"
+    enriched_bucket.blob(csv_file_name).upload_from_string(
+        render_csv(enriched),
+        content_type="text/csv",
+    )
+
     logger.info(
-        "Wrote gs://%s/%s — %d profiles, usage=%s",
+        "Wrote gs://%s/%s and gs://%s/%s — %d profiles, usage=%s",
         ENRICHED_BUCKET,
         enriched_file_name,
+        ENRICHED_BUCKET,
+        csv_file_name,
         len(enriched["profiles"]),
         enriched["usage"],
     )
