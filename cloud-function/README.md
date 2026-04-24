@@ -17,13 +17,14 @@ Triggered by `object.finalize` on `gs://sytycai-video-transcripts/`. Reads the r
 ```bash
 gcloud functions deploy enrich-transcript \
   --gen2 \
-  --region=us-central1 \
+  --region=us-east1 \
   --runtime=python312 \
   --source=. \
   --entry-point=on_transcript_finalized \
   --trigger-bucket=sytycai-video-transcripts \
   --memory=512Mi \
   --timeout=540s \
+  --ingress-settings=internal-only \
   --set-secrets=ANTHROPIC_API_KEY=anthropic-api-key:latest \
   --service-account=<your-function-sa>@<project>.iam.gserviceaccount.com
 ```
