@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Coach Room — Reunion Ready</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Lato:wght@300;400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- HERO -->
+    <header class="hero">
+      <div class="hero-inner">
+        <div class="diamond-row">
+          <span class="diamond">◆</span>
+          <span class="diamond sm">◆</span>
+          <span class="diamond sm">◆</span>
+        </div>
+        <p class="network-label">BRAVO &nbsp;✦&nbsp; THE COACH ROOM</p>
+        <h1 class="title">REUNION<br /><span class="title-accent">PREP COACH</span></h1>
+        <p class="subtitle">Your Bravo Producer, On Demand</p>
+        <p class="tagline">Ask her anything. She remembers everything.</p>
+        <div class="diamond-row flip">
+          <span class="diamond sm">◆</span>
+          <span class="diamond sm">◆</span>
+          <span class="diamond">◆</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="card card-unconfigured hidden" id="unconfigured-card">
+        <span class="status-icon">🔒</span>
+        <h3>The Coach Room is locked, darling.</h3>
+        <p>
+          Salesforce credentials aren't set on this server, so we can't reach Agentforce from here.
+          The native chat in the Salesforce org is still open for business.
+        </p>
+        <p class="footer-sub" style="margin-top: 12px">
+          Set <code>SF_INSTANCE_URL</code>, <code>SF_CLIENT_ID</code>,
+          <code>SF_CLIENT_SECRET</code>, and <code>SF_AGENT_ID</code> to unlock.
+        </p>
+      </section>
+
+      <section class="card coach-card hidden" id="coach-card">
+        <div class="card-header">
+          <span class="card-eyebrow">🎬 NOW COACHING</span>
+          <h2>Ask the Producer</h2>
+          <p class="card-desc">
+            She's read every transcript. She knows every feud. Ask who's bringing what to the
+            reunion.
+          </p>
+        </div>
+
+        <div id="chat-log" class="chat-log" aria-live="polite">
+          <div class="chat-empty">Pick a prompt below or type your own. Producer's listening.</div>
+        </div>
+
+        <div class="chat-chips" id="chat-chips">
+          <button type="button" class="chip" data-prompt="Brief me on Meredith before tonight">
+            Brief me on Meredith
+          </button>
+          <button type="button" class="chip" data-prompt="Who's feuding this season?">
+            Who's feuding this season?
+          </button>
+          <button type="button" class="chip" data-prompt="Write Heather's confessional">
+            Write Heather's confessional
+          </button>
+          <button type="button" class="chip" data-prompt="Who's the biggest villain this season?">
+            Who's the biggest villain?
+          </button>
+        </div>
+
+        <form id="chat-form" class="chat-form">
+          <input
+            type="text"
+            id="chat-input"
+            placeholder="Type your question for the producer…"
+            autocomplete="off"
+            required
+          />
+          <button type="submit" class="btn-primary" id="send-btn">
+            <span class="btn-text">SEND</span>
+            <span class="btn-loading hidden">Thinking&hellip;</span>
+          </button>
+        </form>
+      </section>
+
+      <section class="card card-error hidden" id="error-card">
+        <span class="status-icon">💔</span>
+        <h3>Oh honey.</h3>
+        <p id="error-message"></p>
+      </section>
+    </main>
+
+    <footer>
+      <div class="diamond-row">
+        <span class="diamond sm">◆</span>
+        <span class="diamond xs">◆</span>
+        <span class="diamond sm">◆</span>
+      </div>
+      <p>
+        <a href="/" class="footer-link">← Confessional Booth</a>
+        &nbsp;·&nbsp;
+        <a href="/playback" class="footer-link">🎙️ Playback Room →</a>
+      </p>
+      <p class="footer-sub">Powered by Salesforce Agentforce</p>
+    </footer>
+
+    <script src="coach.js"></script>
+  </body>
+</html>
