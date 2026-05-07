@@ -14,6 +14,8 @@ Multi-agent pipeline that ingests Real Housewives reunion transcripts, maps dram
 | Data       | Salesforce Data Cloud             |
 | Agent      | Salesforce Agentforce             |
 
+<img width="1000" alt="Architecture" src="https://github.com/user-attachments/assets/684447ea-d5fb-4ef8-9798-7a84a5aa45b2" />
+
 ## Run Locally
 
 **Prerequisites:** Node.js ≥ 20, GCP project, service account with `storage.objects.create` on `sytycai-video-transcripts`.
