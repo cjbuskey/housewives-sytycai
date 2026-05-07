@@ -57,13 +57,14 @@ openssl genrsa -out server.key 2048
 openssl req -new -x509 -key server.key -out server.crt -days 365
 ```
 
-Upload `server.crt` to a Connected App with `einstein_genie_api` scope, then set in `.env`:
+Upload `server.crt` to a Connected App. Required OAuth scopes: `einstein_genie_api` (or `einstein_gpt_api` depending on your org), `api`, `refresh_token`. Then set in `.env`:
 
 ```
 SF_INSTANCE_URL=https://yourorg.my.salesforce.com
 SF_CLIENT_ID=<consumer key>
 SF_AGENT_ID=<18-char agent id>
 SF_DEFAULT_USERNAME=<salesforce username>
+SF_ORG_ID=<18-char org id — Setup → Company Information>
 SF_PRIVATE_KEY_PATH=server.key
 ```
 
@@ -77,8 +78,8 @@ To backfill CSVs for any enriched files that pre-date this change:
 
 ```bash
 cd cloud-function
-python backfill_csv.py          # preview first
-python backfill_csv.py --dry-run
+python backfill_csv.py --dry-run   # preview first
+python backfill_csv.py             # run
 ```
 
 ## Scripts

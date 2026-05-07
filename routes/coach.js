@@ -84,7 +84,11 @@ async function openAgentSession(username) {
 
   const r = await fetch(`${AGENT_API_BASE}/agents/${env.agentId}/sessions`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token.accessToken}`, 'Content-Type': 'application/json' },
+    headers: {
+      Authorization: `Bearer ${token.accessToken}`,
+      'Content-Type': 'application/json',
+      ...(env.orgId && { 'X-Salesforce-Org-Id': env.orgId }),
+    },
     body: JSON.stringify({
       externalSessionKey: crypto.randomUUID(),
       instanceConfig: { endpoint: env.instanceUrl },
