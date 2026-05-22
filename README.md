@@ -14,7 +14,8 @@ Multi-agent pipeline that ingests Real Housewives reunion transcripts, maps dram
 | Data       | Salesforce Data Cloud             |
 | Agent      | Salesforce Agentforce             |
 
-<img width="1200" alt="Architecture diagram" src="https://github.com/user-attachments/assets/8ea7157c-1303-41fb-9e81-aec1721d3c64" />
+
+<img width="1200" alt="Architecture" src="https://github.com/user-attachments/assets/f7c4a85c-8373-4b9a-9e33-3be8c220c1e5" />
 
 ## Run Locally
 
